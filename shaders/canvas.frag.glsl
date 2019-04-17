@@ -7,5 +7,5 @@ out vec3 color;
 
 void main(){
     vec3 img = texture(image, uv).rgb;
-    color = vec3(uv, 0);
+    color = img;
 }

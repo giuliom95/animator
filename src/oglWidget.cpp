@@ -18,7 +18,7 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	imageWidth = w;
 	imageHeight = h;
 
-	const auto clearCanv = std::vector<unsigned short>(w*h*4, 255);
+	const auto clearCanv = std::vector<GLubyte>(w*h*4, 255);
 
 	glBindTexture(GL_TEXTURE_2D, textureId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearCanv.data());
@@ -59,7 +59,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(200, 200);
+	newCanvas(400, 500);
 
 	// Create shaders
 	const auto vtxShaderId = loadShader("shaders/canvas.vert.glsl", GL_VERTEX_SHADER);
