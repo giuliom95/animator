@@ -15,6 +15,8 @@
 
 #include <QtWidgets>
 
+#include "utilities.hpp"
+
 class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 	Q_OBJECT
 public:

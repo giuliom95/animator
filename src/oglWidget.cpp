@@ -158,36 +158,12 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	lastMouseX = (int)mousePos.x();
 	lastMouseY = (int)mousePos.y();
 
-	switch(event->button()) {
-		case Qt::LeftButton:
-			mouseButtonsPressed[0] = true;
-			break;
-		case Qt::RightButton:
-			mouseButtonsPressed[1] = true;
-			break;
-		case Qt::MiddleButton:
-			mouseButtonsPressed[2] = true;
-			break;
-		default:
-			break;
-	}
+	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
 }
 
 void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	
-	switch(event->button()) {
-		case Qt::LeftButton:
-			mouseButtonsPressed[0] = false;
-			break;
-		case Qt::RightButton:
-			mouseButtonsPressed[1] = false;
-			break;
-		case Qt::MiddleButton:
-			mouseButtonsPressed[2] = false;
-			break;
-		default:
-			break;
-	}
+	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
 
 	update();
 }
