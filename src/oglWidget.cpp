@@ -6,7 +6,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
-												vao{} {
+												presentationCanvasVao{} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -20,7 +20,7 @@ void OGLWidget::newCanvas(const int w, const int h) {
 
 	const auto clearCanv = std::vector<GLubyte>(w*h*4, 255);
 
-	glBindTexture(GL_TEXTURE_2D, textureId);
+	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearCanv.data());
 	update();
 }
@@ -51,50 +51,50 @@ void OGLWidget::initializeGL() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_TEXTURE_2D);
 	
-	vao.create();
-	vao.bind();
+	presentationCanvasVao.create();
+	presentationCanvasVao.bind();
 
-	glGenTextures(1, &textureId);
-	glBindTexture(GL_TEXTURE_2D, textureId);
+	glGenTextures(1, &canvasTexId);
+	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	newCanvas(400, 500);
 
 	// Create shaders
-	const auto vtxShaderId = loadShader("shaders/canvas.vert.glsl", GL_VERTEX_SHADER);
-	const auto fragShaderId = loadShader("shaders/canvas.frag.glsl", GL_FRAGMENT_SHADER);
+	const auto presentationCanvasVertShadId = loadShader("shaders/presentationcanvas.vert.glsl", GL_VERTEX_SHADER);
+	const auto presentationCanvasFragShadId = loadShader("shaders/presentationcanvas.frag.glsl", GL_FRAGMENT_SHADER);
 	
 	// Link the program
-	GLuint progId = glCreateProgram();
-	glAttachShader(progId, vtxShaderId);
-	glAttachShader(progId, fragShaderId);
-	glLinkProgram(progId);
+	presentationCanvasProgId = glCreateProgram();
+	glAttachShader(presentationCanvasProgId, presentationCanvasVertShadId);
+	glAttachShader(presentationCanvasProgId, presentationCanvasFragShadId);
+	glLinkProgram(presentationCanvasProgId);
 
 	// Check the program
 	GLint result = GL_FALSE;
 	int infoLogLen;
-	glGetProgramiv(progId, GL_LINK_STATUS, &result);
-	glGetProgramiv(progId, GL_INFO_LOG_LENGTH, &infoLogLen);
+	glGetProgramiv(presentationCanvasProgId, GL_LINK_STATUS, &result);
+	glGetProgramiv(presentationCanvasProgId, GL_INFO_LOG_LENGTH, &infoLogLen);
 	if ( infoLogLen > 0 ){
 		std::vector<char> msg(infoLogLen+1);
-		glGetProgramInfoLog(progId, infoLogLen, NULL, msg.data());
+		glGetProgramInfoLog(presentationCanvasProgId, infoLogLen, NULL, msg.data());
 		std::cout << std::string(msg.data()) << std::endl;
 	}
 	
-	glDetachShader(progId, vtxShaderId);
-	glDetachShader(progId, fragShaderId);
+	glDetachShader(presentationCanvasProgId, presentationCanvasVertShadId);
+	glDetachShader(presentationCanvasProgId, presentationCanvasFragShadId);
 	
-	glDeleteShader(vtxShaderId);
-	glDeleteShader(fragShaderId);
+	glDeleteShader(presentationCanvasVertShadId);
+	glDeleteShader(presentationCanvasFragShadId);
 
-	glUseProgram(progId);
+	glUseProgram(presentationCanvasProgId);
 
-	matrixLocationId = glGetUniformLocation(progId, "view");
-	textureLocationId = glGetUniformLocation(progId, "image");
+	presentationCanvasMatLocId = glGetUniformLocation(presentationCanvasProgId, "view");
+	presentationCanvasTexLocId = glGetUniformLocation(presentationCanvasProgId, "image");
 
-	glGenBuffers(1, &uvBuf);
-	glGenBuffers(1, &vtxBuf);
+	glGenBuffers(1, &presentationCanvasUvBuf);
+	glGenBuffers(1, &presentationCanvasVertBuf);
 }
 
 void OGLWidget::resizeGL(int w, int h) {
@@ -116,12 +116,11 @@ void OGLWidget::paintGL() {
 	const auto ty = -(top + bottom) / (top - bottom);
 	const auto tz = 0;
 	const std::array<GLfloat, 16> mat{A, 0, 0, tx, 0, B, 0, ty, 0, 0, C, tz, 0, 0, 0, 1};
-	glUniformMatrix4fv(matrixLocationId, 1, GL_FALSE, mat.data());
+	glUniformMatrix4fv(presentationCanvasMatLocId, 1, GL_FALSE, mat.data());
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureId);
-	glUniform1i(textureLocationId, 0);
-
+	glBindTexture(GL_TEXTURE_2D, canvasTexId);
+	glUniform1i(presentationCanvasTexLocId, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -131,7 +130,7 @@ void OGLWidget::paintGL() {
 			  0.0f, imageHeight,
 		imageWidth, imageHeight
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, vtxBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasVertBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -142,7 +141,7 @@ void OGLWidget::paintGL() {
 		0.0f, 1.0f,
 		1.0f, 1.0f
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, uvBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasUvBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);

@@ -48,12 +48,14 @@ private:
 
 	QPushButton& zoomButton;
 
-	GLuint textureId;
-	GLuint vtxBuf;
-	GLuint uvBuf;
-	GLuint matrixLocationId;
-	GLuint textureLocationId;
-	QOpenGLVertexArrayObject vao;
+	GLuint canvasTexId;
+
+	GLuint presentationCanvasProgId;
+	GLuint presentationCanvasVertBuf;
+	GLuint presentationCanvasUvBuf;
+	GLuint presentationCanvasMatLocId;
+	GLuint presentationCanvasTexLocId;
+	QOpenGLVertexArrayObject presentationCanvasVao;
 
 	const int loadShader(std::string path, GLenum shaderType);
 };
