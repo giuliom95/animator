@@ -1,0 +1,12 @@
+*.o
+*.exr
+bin/
+.qmake*
+Makefile
+.vscode
+
+*.cpp
+*.hpp
+*.h
+!src/*.cpp
+!src/*.hpp
