@@ -11,6 +11,8 @@
 #include <sstream>
 #include <thread>
 
+#include <fstream>
+
 #include <QtWidgets>
 
 class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
@@ -50,6 +52,8 @@ private:
 	GLuint matrixLocationId;
 	GLuint textureLocationId;
 	QOpenGLVertexArrayObject vao;
+
+	const int loadShader(std::string path, GLenum shaderType);
 };
 
 #endif

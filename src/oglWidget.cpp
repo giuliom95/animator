@@ -62,60 +62,9 @@ void OGLWidget::initializeGL() {
 	newCanvas(200, 200);
 
 	// Create shaders
-	const auto vtxShaderId = glCreateShader(GL_VERTEX_SHADER);
-	const auto fragShaderId = glCreateShader(GL_FRAGMENT_SHADER);
-
-	GLint result = GL_FALSE;
-	int infoLogLen;
-
-	// Compile Vertex Shader
-	const std::string vtxShaderCode = "#version 450 core \n"
-	"layout(location = 0) in vec2 vtx_pos;"
-	"layout(location = 1) in vec2 vtx_uv;"
-	"out vec2 uv;"
-	"uniform mat4 view;"
-	"void main(){"
-		"gl_Position.xy = vtx_pos;"
-		"gl_Position.z = 0.0f;"
-		"gl_Position.w = 1.0f;"
-		"gl_Position = gl_Position * view;"
-		"uv = vtx_uv;"
-	"}";
-	const auto* vtxShaderCodePtr = vtxShaderCode.c_str();
-	glShaderSource(vtxShaderId, 1, &vtxShaderCodePtr, NULL);
-	glCompileShader(vtxShaderId);
-
-	// Check Vertex Shader
-	glGetShaderiv(vtxShaderId, GL_COMPILE_STATUS, &result);
-	glGetShaderiv(vtxShaderId, GL_INFO_LOG_LENGTH, &infoLogLen);
-	if ( infoLogLen > 0 ){
-		std::vector<char> msg(infoLogLen+1);
-		glGetShaderInfoLog(vtxShaderId, infoLogLen, NULL, msg.data());
-		std::cout << std::string(msg.data()) << std::endl;
-	}
-
-	// Compile Frag Shader
-	const std::string fragShaderCode = "#version 450 core\n"
-	"in vec2 uv;"
-	"out vec3 color;"
-	"uniform sampler2D image;"
-	"void main(){"
-		"vec3 img = texture(image, uv).rgb;"
-		"color = vec3(img.b);"
-	"}";
-	const auto* fragShaderCodePtr = fragShaderCode.c_str();
-	glShaderSource(fragShaderId, 1, &fragShaderCodePtr, NULL);
-	glCompileShader(fragShaderId);
-
-	// Check Frag Shader
-	glGetShaderiv(fragShaderId, GL_COMPILE_STATUS, &result);
-	glGetShaderiv(fragShaderId, GL_INFO_LOG_LENGTH, &infoLogLen);
-	if ( infoLogLen > 0 ){
-		std::vector<char> msg(infoLogLen+1);
-		glGetShaderInfoLog(fragShaderId, infoLogLen, NULL, msg.data());
-		std::cout << std::string(msg.data()) << std::endl;
-	}
-
+	const auto vtxShaderId = loadShader("shaders/canvas.vert.glsl", GL_VERTEX_SHADER);
+	const auto fragShaderId = loadShader("shaders/canvas.frag.glsl", GL_FRAGMENT_SHADER);
+	
 	// Link the program
 	GLuint progId = glCreateProgram();
 	glAttachShader(progId, vtxShaderId);
@@ -123,6 +72,8 @@ void OGLWidget::initializeGL() {
 	glLinkProgram(progId);
 
 	// Check the program
+	GLint result = GL_FALSE;
+	int infoLogLen;
 	glGetProgramiv(progId, GL_LINK_STATUS, &result);
 	glGetProgramiv(progId, GL_INFO_LOG_LENGTH, &infoLogLen);
 	if ( infoLogLen > 0 ){
@@ -217,6 +168,8 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 		case Qt::MiddleButton:
 			mouseButtonsPressed[2] = true;
 			break;
+		default:
+			break;
 	}
 }
 
@@ -231,6 +184,8 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 			break;
 		case Qt::MiddleButton:
 			mouseButtonsPressed[2] = false;
+			break;
+		default:
 			break;
 	}
 
@@ -264,4 +219,33 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 	const auto newZoomFactor = zoomFactor + 0.5*scroll;
 
 	setZoom(newZoomFactor, mousePos.x(), mousePos.y());
+}
+
+
+const int OGLWidget::loadShader(std::string path, GLenum shaderType) {
+	// Create shader
+	const int shaderId = glCreateShader(shaderType);
+
+	GLint result = GL_FALSE;
+	int infoLogLen;
+
+	// Compile shader
+	std::ifstream t(path);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	const auto vtxShaderCode = buffer.str();
+	const auto* vtxShaderCodePtr = vtxShaderCode.c_str();
+	glShaderSource(shaderId, 1, &vtxShaderCodePtr, NULL);
+	glCompileShader(shaderId);
+
+	// Check shader
+	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result);
+	glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &infoLogLen);
+	if ( infoLogLen > 0 ){
+		std::vector<char> msg(infoLogLen+1);
+		glGetShaderInfoLog(shaderId, infoLogLen, NULL, msg.data());
+		std::cout << std::string(msg.data()) << std::endl;
+	}
+
+	return shaderId;
 }
