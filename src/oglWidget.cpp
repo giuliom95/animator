@@ -59,42 +59,72 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(400, 500);
+	newCanvas(400, 300);
 
-	// Create shaders
+	////////////////////////////////////////////
+	// Shader program for canvas presentation //
+	////////////////////////////////////////////
 	const auto presentationCanvasVertShadId = loadShader("shaders/presentationcanvas.vert.glsl", GL_VERTEX_SHADER);
 	const auto presentationCanvasFragShadId = loadShader("shaders/presentationcanvas.frag.glsl", GL_FRAGMENT_SHADER);
 	
-	// Link the program
-	presentationCanvasProgId = glCreateProgram();
-	glAttachShader(presentationCanvasProgId, presentationCanvasVertShadId);
-	glAttachShader(presentationCanvasProgId, presentationCanvasFragShadId);
-	glLinkProgram(presentationCanvasProgId);
+	presentationCanvasProgId = linkShaderProgram(presentationCanvasVertShadId, presentationCanvasFragShadId);
 
-	// Check the program
-	GLint result = GL_FALSE;
-	int infoLogLen;
-	glGetProgramiv(presentationCanvasProgId, GL_LINK_STATUS, &result);
-	glGetProgramiv(presentationCanvasProgId, GL_INFO_LOG_LENGTH, &infoLogLen);
-	if ( infoLogLen > 0 ){
-		std::vector<char> msg(infoLogLen+1);
-		glGetProgramInfoLog(presentationCanvasProgId, infoLogLen, NULL, msg.data());
-		std::cout << std::string(msg.data()) << std::endl;
-	}
-	
-	glDetachShader(presentationCanvasProgId, presentationCanvasVertShadId);
-	glDetachShader(presentationCanvasProgId, presentationCanvasFragShadId);
-	
 	glDeleteShader(presentationCanvasVertShadId);
 	glDeleteShader(presentationCanvasFragShadId);
-
-	glUseProgram(presentationCanvasProgId);
 
 	presentationCanvasMatLocId = glGetUniformLocation(presentationCanvasProgId, "view");
 	presentationCanvasTexLocId = glGetUniformLocation(presentationCanvasProgId, "image");
 
+	///////////////////////////////////////
+	// Shader program for canvas drawing //
+	///////////////////////////////////////
+	const auto canvasVertShadId = loadShader("shaders/canvas.vert.glsl", GL_VERTEX_SHADER);
+	const auto canvasFragShadId = loadShader("shaders/canvas.frag.glsl", GL_FRAGMENT_SHADER);
+	
+	canvasProgId = linkShaderProgram(canvasVertShadId, canvasFragShadId);
+
+	glDeleteShader(canvasVertShadId);
+	glDeleteShader(canvasFragShadId);
+
+
+	////////////////////////////////////////
+	// Generate vertex buffers for canvas //
+	////////////////////////////////////////
 	glGenBuffers(1, &presentationCanvasUvBuf);
 	glGenBuffers(1, &presentationCanvasVertBuf);
+	
+	const GLfloat vtxBufData[] = {
+			  0.0f, 0.0f,
+		imageWidth, 0.0f,
+			  0.0f, imageHeight,
+		imageWidth, imageHeight
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasVertBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+	const GLfloat uvBufData[] = {
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 1.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasUvBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+
+	///////////////////
+	// Generate FBOs //
+	///////////////////
+	glGenFramebuffers(1, &canvasFboId);
+	glBindFramebuffer(GL_FRAMEBUFFER, canvasFboId);
+
+	// Attach the binded framebuffer to texture
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, canvasTexId, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
 }
 
 void OGLWidget::resizeGL(int w, int h) {
@@ -104,6 +134,27 @@ void OGLWidget::resizeGL(int w, int h) {
 
 void OGLWidget::paintGL() {
 	
+	////////////////////
+	// Draw on canvas //
+	////////////////////
+	glBindFramebuffer(GL_FRAMEBUFFER, canvasFboId);
+
+	glViewport(0, 0, imageWidth, imageHeight);
+	glUseProgram(canvasProgId);
+
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, buf);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+
+	/////////////////
+	// Draw canvas //
+	/////////////////
+	glViewport(0,0,widgetWidth,widgetHeight);
+	glUseProgram(presentationCanvasProgId);
+
 	const auto invZoom = 1 / zoomFactor;
 	const auto left = cameraPanX;
 	const auto right = cameraPanX + widgetWidth*invZoom;
@@ -123,32 +174,9 @@ void OGLWidget::paintGL() {
 	glUniform1i(presentationCanvasTexLocId, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	
-	const GLfloat vtxBufData[] = {
-			  0.0f, 0.0f,
-		imageWidth, 0.0f,
-			  0.0f, imageHeight,
-		imageWidth, imageHeight
-	};
-	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasVertBuf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
-	const GLfloat uvBufData[] = {
-		0.0f, 0.0f,
-		1.0f, 0.0f,
-		0.0f, 1.0f,
-		1.0f, 1.0f
-	};
-	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasUvBuf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
 }
 
 void OGLWidget::mousePressEvent(QMouseEvent* event) {
@@ -197,9 +225,9 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 }
 
 
-const int OGLWidget::loadShader(std::string path, GLenum shaderType) {
+const GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	// Create shader
-	const int shaderId = glCreateShader(shaderType);
+	const GLuint shaderId = glCreateShader(shaderType);
 
 	GLint result = GL_FALSE;
 	int infoLogLen;
@@ -223,4 +251,28 @@ const int OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	}
 
 	return shaderId;
+}
+
+const GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId) {
+	// Link the program
+	const GLuint progId = glCreateProgram();
+	glAttachShader(progId, vertShaderId);
+	glAttachShader(progId, fragShaderId);
+	glLinkProgram(progId);
+
+	// Check the program
+	GLint result = GL_FALSE;
+	int infoLogLen;
+	glGetProgramiv(progId, GL_LINK_STATUS, &result);
+	glGetProgramiv(progId, GL_INFO_LOG_LENGTH, &infoLogLen);
+	if ( infoLogLen > 0 ){
+		std::vector<char> msg(infoLogLen+1);
+		glGetProgramInfoLog(progId, infoLogLen, NULL, msg.data());
+		std::cout << std::string(msg.data()) << std::endl;
+	}
+	
+	glDetachShader(progId, vertShaderId);
+	glDetachShader(progId, fragShaderId);
+
+	return progId;
 }

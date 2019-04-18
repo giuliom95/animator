@@ -1,6 +1,8 @@
 #ifndef OGL_WIDGET_HPP
 #define OGL_WIDGET_HPP
 
+#define GL_GLEXT_PROTOTYPES 1
+
 #include <iostream>
 #include <vector>
 #include <array>
@@ -50,6 +52,10 @@ private:
 
 	GLuint canvasTexId;
 
+	GLuint canvasFboId;
+
+	GLuint canvasProgId;
+
 	GLuint presentationCanvasProgId;
 	GLuint presentationCanvasVertBuf;
 	GLuint presentationCanvasUvBuf;
@@ -57,7 +63,8 @@ private:
 	GLuint presentationCanvasTexLocId;
 	QOpenGLVertexArrayObject presentationCanvasVao;
 
-	const int loadShader(std::string path, GLenum shaderType);
+	const GLuint loadShader(std::string path, GLenum shaderType);
+	const GLuint linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId);
 };
 
 #endif
