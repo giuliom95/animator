@@ -25,6 +25,7 @@ public:
 	OGLWidget(QPushButton& zoomButton);
 
 	void newCanvas(const int imageWidth, const int imageHeight);
+	void drawOnCanvas();
 
 	void setZoom(float zoomFactor, float centerX, float centerY);
 
@@ -43,6 +44,7 @@ private:
 	int		imageWidth,		imageHeight;
 	float	cameraPanX,		cameraPanY;
 	float	lastMouseX,		lastMouseY;
+	int		mouseOnCanvasX,	mouseOnCanvasY;
 
 	float zoomFactor;
 
@@ -55,6 +57,8 @@ private:
 	GLuint canvasFboId;
 
 	GLuint canvasProgId;
+	GLuint canvasTexLocId;
+	GLuint canvasMousePosLocId;
 
 	GLuint presentationCanvasProgId;
 	GLuint presentationCanvasVertBuf;

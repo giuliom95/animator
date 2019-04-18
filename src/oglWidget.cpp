@@ -18,7 +18,7 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	imageWidth = w;
 	imageHeight = h;
 
-	const auto clearCanv = std::vector<GLubyte>(w*h*4, 255);
+	const auto clearCanv = std::vector<GLubyte>(w*h*4, 128);
 
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearCanv.data());
@@ -73,7 +73,7 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(presentationCanvasFragShadId);
 
 	presentationCanvasMatLocId = glGetUniformLocation(presentationCanvasProgId, "view");
-	presentationCanvasTexLocId = glGetUniformLocation(presentationCanvasProgId, "image");
+	presentationCanvasTexLocId = glGetUniformLocation(presentationCanvasProgId, "canvas");
 
 	///////////////////////////////////////
 	// Shader program for canvas drawing //
@@ -86,6 +86,8 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(canvasVertShadId);
 	glDeleteShader(canvasFragShadId);
 
+	canvasTexLocId = glGetUniformLocation(canvasProgId, "canvas");
+	canvasMousePosLocId = glGetUniformLocation(canvasProgId, "mousePos");
 
 	////////////////////////////////////////
 	// Generate vertex buffers for canvas //
@@ -132,11 +134,7 @@ void OGLWidget::resizeGL(int w, int h) {
 	widgetHeight = h;
 }
 
-void OGLWidget::paintGL() {
-	
-	////////////////////
-	// Draw on canvas //
-	////////////////////
+void OGLWidget::drawOnCanvas() {
 	glBindFramebuffer(GL_FRAMEBUFFER, canvasFboId);
 
 	glViewport(0, 0, imageWidth, imageHeight);
@@ -145,13 +143,23 @@ void OGLWidget::paintGL() {
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, canvasTexId);
+	glUniform1i(canvasTexLocId, 0);
+
+	glUniform2i(canvasMousePosLocId, mouseOnCanvasX, mouseOnCanvasY);
+
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+}
 
-	/////////////////
-	// Draw canvas //
-	/////////////////
+
+void OGLWidget::paintGL() {
+
+	if(mouseButtonsPressed[0])
+		drawOnCanvas();
+
 	glViewport(0,0,widgetWidth,widgetHeight);
 	glUseProgram(presentationCanvasProgId);
 
@@ -181,11 +189,19 @@ void OGLWidget::paintGL() {
 
 void OGLWidget::mousePressEvent(QMouseEvent* event) {
 
-	const auto mousePos = event->screenPos();
-	lastMouseX = (int)mousePos.x();
-	lastMouseY = (int)mousePos.y();
+	const auto mouseScreenPos = event->screenPos();
+	lastMouseX = (int)mouseScreenPos.x();
+	lastMouseY = (int)mouseScreenPos.y();
 
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
+
+	const auto mouseWidgetPos = event->pos();
+	const auto invZoom = 1 / zoomFactor;
+	mouseOnCanvasX = invZoom*mouseWidgetPos.x() + cameraPanX;
+	mouseOnCanvasY = invZoom*mouseWidgetPos.y() + cameraPanY;
+
+	if(event->button() == Qt::LeftButton)
+		update();
 }
 
 void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
@@ -211,9 +227,12 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 		update();
 	}
 
-	// const auto mousePos = event->pos();
-	// const int x = invZoom*mousePos.x() + cameraPanX;
-	// const int y = invZoom*mousePos.y() + cameraPanY;
+	const auto mousePos = event->pos();
+	mouseOnCanvasX = invZoom*mousePos.x() + cameraPanX;
+	mouseOnCanvasY = invZoom*mousePos.y() + cameraPanY;
+
+	if(mouseButtonsPressed[0])
+		update();
 }
 
 void OGLWidget::wheelEvent(QWheelEvent *event) {

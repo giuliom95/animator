@@ -1,16 +1,21 @@
 #version 450 core
 
-in vec2 vtx_pos;
+uniform sampler2D canvas;
+uniform ivec2 mousePos; 
+
+in vec2 pixel;
 
 out vec3 color;
 
 void main(){
 
-    // vec2 diff = vec2(.5) - uv;
-    // float sqdist = dot(diff, diff);
+    vec3 old = texelFetch(canvas, ivec2(pixel), 0).rgb;
 
-    // float brush_size = .1;
-    // float a = exp(-sqdist/(brush_size*brush_size));
+    vec2 diff = pixel - mousePos;
+    float sqdist = dot(diff, diff);
 
-    color = vec3(1, 0, 0);
+    float brush_size = 2;
+    float a = exp(-sqdist/(brush_size*brush_size));
+
+    color = a*vec3(1,0,0) + (1-a)*old;
 }
