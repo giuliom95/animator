@@ -18,7 +18,7 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	imageWidth = w;
 	imageHeight = h;
 
-	const auto clearCanv = std::vector<GLubyte>(w*h*4, 128);
+	const auto clearCanv = std::vector<GLubyte>(w*h*4, 255);
 
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearCanv.data());
@@ -88,6 +88,7 @@ void OGLWidget::initializeGL() {
 
 	canvasTexLocId = glGetUniformLocation(canvasProgId, "canvas");
 	canvasMousePosLocId = glGetUniformLocation(canvasProgId, "mousePos");
+	canvasLastMousePosLocId = glGetUniformLocation(canvasProgId, "lastMousePos");
 
 	////////////////////////////////////////
 	// Generate vertex buffers for canvas //
@@ -148,10 +149,14 @@ void OGLWidget::drawOnCanvas() {
 	glUniform1i(canvasTexLocId, 0);
 
 	glUniform2i(canvasMousePosLocId, mouseOnCanvasX, mouseOnCanvasY);
+	glUniform2i(canvasLastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+
+	lastMouseOnCanvasX = mouseOnCanvasX;
+	lastMouseOnCanvasY = mouseOnCanvasY;
 }
 
 
@@ -199,6 +204,8 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	const auto invZoom = 1 / zoomFactor;
 	mouseOnCanvasX = invZoom*mouseWidgetPos.x() + cameraPanX;
 	mouseOnCanvasY = invZoom*mouseWidgetPos.y() + cameraPanY;
+	lastMouseOnCanvasX = mouseOnCanvasX;
+	lastMouseOnCanvasY = mouseOnCanvasY;
 
 	if(event->button() == Qt::LeftButton)
 		update();

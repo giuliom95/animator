@@ -40,11 +40,12 @@ protected:
 	void wheelEvent(QWheelEvent *event);
 
 private:
-	int		widgetWidth,	widgetHeight;
-	int		imageWidth,		imageHeight;
-	float	cameraPanX,		cameraPanY;
-	float	lastMouseX,		lastMouseY;
-	int		mouseOnCanvasX,	mouseOnCanvasY;
+	int		widgetWidth,		widgetHeight;
+	int		imageWidth,			imageHeight;
+	float	cameraPanX,			cameraPanY;
+	float	lastMouseX,			lastMouseY;
+	int		mouseOnCanvasX,		mouseOnCanvasY;
+	int		lastMouseOnCanvasX,	lastMouseOnCanvasY;
 
 	float zoomFactor;
 
@@ -59,6 +60,7 @@ private:
 	GLuint canvasProgId;
 	GLuint canvasTexLocId;
 	GLuint canvasMousePosLocId;
+	GLuint canvasLastMousePosLocId;
 
 	GLuint presentationCanvasProgId;
 	GLuint presentationCanvasVertBuf;
