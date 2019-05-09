@@ -6,7 +6,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
-												presentationCanvasVao{} {
+												vao{} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -18,10 +18,14 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	imageWidth = w;
 	imageHeight = h;
 
-	const auto clearCanv = std::vector<GLubyte>(w*h*4, 255);
-
+	const auto clearCanv = std::vector<GLubyte>(w*h*3, 255);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWidth, imageHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, clearCanv.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
+
+	const auto clearAlpha = std::vector<GLubyte>(w*h, 0);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, imageWidth, imageHeight, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
+
 	update();
 }
 
@@ -50,9 +54,6 @@ void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_TEXTURE_2D);
-	
-	presentationCanvasVao.create();
-	presentationCanvasVao.bind();
 
 	glGenTextures(1, &canvasTexId);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
@@ -64,37 +65,41 @@ void OGLWidget::initializeGL() {
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
 	////////////////////////////////////////////
-	const auto presentationCanvasVertShadId = loadShader("shaders/presentationcanvas.vert.glsl", GL_VERTEX_SHADER);
-	const auto presentationCanvasFragShadId = loadShader("shaders/presentationcanvas.frag.glsl", GL_FRAGMENT_SHADER);
+	const auto showCanvas_vertShadId = loadShader("shaders/showCanvas.vert.glsl", GL_VERTEX_SHADER);
+	const auto showCanvas_fragShadId = loadShader("shaders/showCanvas.frag.glsl", GL_FRAGMENT_SHADER);
 	
-	presentationCanvasProgId = linkShaderProgram(presentationCanvasVertShadId, presentationCanvasFragShadId);
+	showCanvas_progId = linkShaderProgram(showCanvas_vertShadId, showCanvas_fragShadId);
 
-	glDeleteShader(presentationCanvasVertShadId);
-	glDeleteShader(presentationCanvasFragShadId);
+	glDeleteShader(showCanvas_vertShadId);
+	glDeleteShader(showCanvas_fragShadId);
 
-	presentationCanvasMatLocId = glGetUniformLocation(presentationCanvasProgId, "view");
-	presentationCanvasTexLocId = glGetUniformLocation(presentationCanvasProgId, "canvas");
+	showCanvas_matrixLocId		= glGetUniformLocation(showCanvas_progId, "view");
+	showCanvas_canvasTexLocId 	= glGetUniformLocation(showCanvas_progId, "canvas");
 
-	///////////////////////////////////////
-	// Shader program for canvas drawing //
-	///////////////////////////////////////
-	const auto canvasVertShadId = loadShader("shaders/canvas.vert.glsl", GL_VERTEX_SHADER);
-	const auto canvasFragShadId = loadShader("shaders/canvas.frag.glsl", GL_FRAGMENT_SHADER);
+	////////////////////////////////////////////
+	// Shader program for canvas manipulation //
+	////////////////////////////////////////////
+	const auto canvasManip_VertShadId = loadShader("shaders/canvasManip.vert.glsl", GL_VERTEX_SHADER);
+	const auto canvasManip_FragShadId = loadShader("shaders/canvasManip.frag.glsl", GL_FRAGMENT_SHADER);
 	
-	canvasProgId = linkShaderProgram(canvasVertShadId, canvasFragShadId);
+	canvasManip_progId = linkShaderProgram(canvasManip_VertShadId, canvasManip_FragShadId);
 
-	glDeleteShader(canvasVertShadId);
-	glDeleteShader(canvasFragShadId);
+	glDeleteShader(canvasManip_VertShadId);
+	glDeleteShader(canvasManip_FragShadId);
 
-	canvasTexLocId = glGetUniformLocation(canvasProgId, "canvas");
-	canvasMousePosLocId = glGetUniformLocation(canvasProgId, "mousePos");
-	canvasLastMousePosLocId = glGetUniformLocation(canvasProgId, "lastMousePos");
+	canvasManip_canvasTexLocId		= glGetUniformLocation(canvasManip_progId, "canvas");
+	canvasManip_strokeTexLocId		= glGetUniformLocation(canvasManip_progId, "stroke");
+	canvasManip_mousePosLocId		= glGetUniformLocation(canvasManip_progId, "mousePos");
+	canvasManip_lastMousePosLocId	= glGetUniformLocation(canvasManip_progId, "lastMousePos");
 
-	////////////////////////////////////////
-	// Generate vertex buffers for canvas //
-	////////////////////////////////////////
-	glGenBuffers(1, &presentationCanvasUvBuf);
-	glGenBuffers(1, &presentationCanvasVertBuf);
+	/////////////////////////////
+	// Generate vertex buffers //
+	/////////////////////////////
+	vao.create();
+	vao.bind();
+
+	glGenBuffers(1, &canvasUvBuf);
+	glGenBuffers(1, &canvasVtxBuf);
 	
 	const GLfloat vtxBufData[] = {
 			  0.0f, 0.0f,
@@ -102,7 +107,7 @@ void OGLWidget::initializeGL() {
 			  0.0f, imageHeight,
 		imageWidth, imageHeight
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasVertBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, canvasVtxBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
@@ -112,18 +117,18 @@ void OGLWidget::initializeGL() {
 		0.0f, 1.0f,
 		1.0f, 1.0f
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, presentationCanvasUvBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, canvasUvBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
-	///////////////////
-	// Generate FBOs //
-	///////////////////
-	glGenFramebuffers(1, &canvasFboId);
-	glBindFramebuffer(GL_FRAMEBUFFER, canvasFboId);
+	//////////////////
+	// Generate FBO //
+	//////////////////
+	glGenFramebuffers(1, &fboId);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
 	// Attach the binded framebuffer to texture
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, canvasTexId, 0);
@@ -135,21 +140,25 @@ void OGLWidget::resizeGL(int w, int h) {
 	widgetHeight = h;
 }
 
-void OGLWidget::drawOnCanvas() {
-	glBindFramebuffer(GL_FRAMEBUFFER, canvasFboId);
+void OGLWidget::canvasManipulation() {
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
 	glViewport(0, 0, imageWidth, imageHeight);
-	glUseProgram(canvasProgId);
+	glUseProgram(canvasManip_progId);
 
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glUniform1i(canvasTexLocId, 0);
+	glUniform1i(canvasManip_canvasTexLocId, 0);
 
-	glUniform2i(canvasMousePosLocId, mouseOnCanvasX, mouseOnCanvasY);
-	glUniform2i(canvasLastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glUniform1i(canvasManip_strokeTexLocId, 1);
+
+	glUniform2i(canvasManip_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
+	glUniform2i(canvasManip_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -163,10 +172,10 @@ void OGLWidget::drawOnCanvas() {
 void OGLWidget::paintGL() {
 
 	if(mouseButtonsPressed[0])
-		drawOnCanvas();
+		canvasManipulation();
 
 	glViewport(0,0,widgetWidth,widgetHeight);
-	glUseProgram(presentationCanvasProgId);
+	glUseProgram(showCanvas_progId);
 
 	const auto invZoom = 1 / zoomFactor;
 	const auto left = cameraPanX;
@@ -180,11 +189,11 @@ void OGLWidget::paintGL() {
 	const auto ty = -(top + bottom) / (top - bottom);
 	const auto tz = 0;
 	const std::array<GLfloat, 16> mat{A, 0, 0, tx, 0, B, 0, ty, 0, 0, C, tz, 0, 0, 0, 1};
-	glUniformMatrix4fv(presentationCanvasMatLocId, 1, GL_FALSE, mat.data());
+	glUniformMatrix4fv(showCanvas_matrixLocId, 1, GL_FALSE, mat.data());
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glUniform1i(presentationCanvasTexLocId, 0);
+	glUniform1i(showCanvas_canvasTexLocId, 0);
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnableVertexAttribArray(0);
