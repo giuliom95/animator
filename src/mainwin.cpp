@@ -15,6 +15,9 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	zoomButton = new QPushButton("100.0%");
 	zoomButton->setFixedWidth(70);
 	bottomBarLayout->addWidget(zoomButton);
+	blurSwitch = new QCheckBox("Blur");
+	blurSwitch->setChecked(true);
+	bottomBarLayout->addWidget(blurSwitch);
 	bottomBarLayout->addStretch();
 	bottomBarLayoutContainer->setLayout(bottomBarLayout);
 
@@ -25,11 +28,16 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	mainLayout->addWidget(bottomBarLayoutContainer);
 	setLayout(mainLayout);
 
-	connect(zoomButton,		SIGNAL (clicked()),			this, SLOT (handleZoomButton()));
+	connect(zoomButton,	SIGNAL (clicked()), this, SLOT (handleZoomButton()));
+	connect(blurSwitch,	SIGNAL (clicked()), this, SLOT (handleBlurSwitch()));
 }
 
 void AnimatorMainWindow::handleZoomButton() {
 	const auto cx = oglWidget->width() / 2;
 	const auto cy = oglWidget->height() / 2;
 	oglWidget->setZoom(1.0f, cx, cy);
+}
+
+void AnimatorMainWindow::handleBlurSwitch() {
+	oglWidget->switchBlur();
 }

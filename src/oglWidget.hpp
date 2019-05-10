@@ -25,9 +25,10 @@ public:
 	OGLWidget(QPushButton& zoomButton);
 
 	void newCanvas(const int imageWidth, const int imageHeight);
-	void canvasManipulation();
+	void strokeManagement();
 
 	void setZoom(float zoomFactor, float centerX, float centerY);
+	void switchBlur();
 
 protected:
 	void initializeGL();
@@ -62,18 +63,20 @@ private:
 	GLuint canvasUvBuf;
 	QOpenGLVertexArrayObject vao;
 
-	GLuint canvasManip_progId;
-	GLuint canvasManip_canvasTexLocId;
-	GLuint canvasManip_strokeTexLocId;
-	GLuint canvasManip_mousePosLocId;
-	GLuint canvasManip_lastMousePosLocId;
+	GLuint	stroke_progId;
+	GLuint	stroke_strokeTexLocId;
+	GLuint	stroke_mousePosLocId;
+	GLuint	stroke_lastMousePosLocId;
+	bool	stroke_blur;
 
 	GLuint showCanvas_progId;
 	GLuint showCanvas_matrixLocId;
+	GLuint showCanvas_strokeTexLocId;
 	GLuint showCanvas_canvasTexLocId;
+	GLuint showCanvas_blurSwitchLocId;
 
-	const GLuint loadShader(std::string path, GLenum shaderType);
-	const GLuint linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId);
+	GLuint loadShader(std::string path, GLenum shaderType);
+	GLuint linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId);
 };
 
 #endif

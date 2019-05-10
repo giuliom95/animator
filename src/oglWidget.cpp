@@ -6,6 +6,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
+												stroke_blur{true},
 												vao{} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
@@ -49,6 +50,11 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 	update();
 }
 
+void OGLWidget::switchBlur() {
+	stroke_blur = !stroke_blur;
+	update();
+}
+
 
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
@@ -60,7 +66,12 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(400, 300);
+	glGenTextures(1, &strokeTexId);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	newCanvas(1920, 1080);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -74,23 +85,24 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(showCanvas_fragShadId);
 
 	showCanvas_matrixLocId		= glGetUniformLocation(showCanvas_progId, "view");
+	showCanvas_strokeTexLocId 	= glGetUniformLocation(showCanvas_progId, "stroke");
 	showCanvas_canvasTexLocId 	= glGetUniformLocation(showCanvas_progId, "canvas");
+	showCanvas_blurSwitchLocId	= glGetUniformLocation(showCanvas_progId, "blur");
 
 	////////////////////////////////////////////
 	// Shader program for canvas manipulation //
 	////////////////////////////////////////////
-	const auto canvasManip_VertShadId = loadShader("shaders/canvasManip.vert.glsl", GL_VERTEX_SHADER);
-	const auto canvasManip_FragShadId = loadShader("shaders/canvasManip.frag.glsl", GL_FRAGMENT_SHADER);
+	const auto stroke_VertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
+	const auto stroke_FragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
 	
-	canvasManip_progId = linkShaderProgram(canvasManip_VertShadId, canvasManip_FragShadId);
+	stroke_progId = linkShaderProgram(stroke_VertShadId, stroke_FragShadId);
 
-	glDeleteShader(canvasManip_VertShadId);
-	glDeleteShader(canvasManip_FragShadId);
+	glDeleteShader(stroke_VertShadId);
+	glDeleteShader(stroke_FragShadId);
 
-	canvasManip_canvasTexLocId		= glGetUniformLocation(canvasManip_progId, "canvas");
-	canvasManip_strokeTexLocId		= glGetUniformLocation(canvasManip_progId, "stroke");
-	canvasManip_mousePosLocId		= glGetUniformLocation(canvasManip_progId, "mousePos");
-	canvasManip_lastMousePosLocId	= glGetUniformLocation(canvasManip_progId, "lastMousePos");
+	stroke_strokeTexLocId		= glGetUniformLocation(stroke_progId, "stroke");
+	stroke_mousePosLocId		= glGetUniformLocation(stroke_progId, "mousePos");
+	stroke_lastMousePosLocId	= glGetUniformLocation(stroke_progId, "lastMousePos");
 
 	/////////////////////////////
 	// Generate vertex buffers //
@@ -131,8 +143,8 @@ void OGLWidget::initializeGL() {
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
 	// Attach the binded framebuffer to texture
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, canvasTexId, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, strokeTexId, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void OGLWidget::resizeGL(int w, int h) {
@@ -140,29 +152,25 @@ void OGLWidget::resizeGL(int w, int h) {
 	widgetHeight = h;
 }
 
-void OGLWidget::canvasManipulation() {
+void OGLWidget::strokeManagement() {
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
 	glViewport(0, 0, imageWidth, imageHeight);
-	glUseProgram(canvasManip_progId);
+	glUseProgram(stroke_progId);
 
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glUniform1i(canvasManip_canvasTexLocId, 0);
-
-	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glUniform1i(canvasManip_strokeTexLocId, 1);
+	glUniform1i(stroke_strokeTexLocId, 0);
 
-	glUniform2i(canvasManip_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
-	glUniform2i(canvasManip_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
+	glUniform2i(stroke_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
+	glUniform2i(stroke_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	lastMouseOnCanvasX = mouseOnCanvasX;
 	lastMouseOnCanvasY = mouseOnCanvasY;
@@ -172,7 +180,7 @@ void OGLWidget::canvasManipulation() {
 void OGLWidget::paintGL() {
 
 	if(mouseButtonsPressed[0])
-		canvasManipulation();
+		strokeManagement();
 
 	glViewport(0,0,widgetWidth,widgetHeight);
 	glUseProgram(showCanvas_progId);
@@ -192,8 +200,14 @@ void OGLWidget::paintGL() {
 	glUniformMatrix4fv(showCanvas_matrixLocId, 1, GL_FALSE, mat.data());
 
 	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glUniform1i(showCanvas_strokeTexLocId, 0);
+
+	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glUniform1i(showCanvas_canvasTexLocId, 0);
+	glUniform1i(showCanvas_canvasTexLocId, 1);
+
+	glUniform1i(showCanvas_blurSwitchLocId, stroke_blur);
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	glEnableVertexAttribArray(0);
@@ -260,7 +274,7 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 }
 
 
-const GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
+GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	// Create shader
 	const GLuint shaderId = glCreateShader(shaderType);
 
@@ -288,7 +302,7 @@ const GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	return shaderId;
 }
 
-const GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId) {
+GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId) {
 	// Link the program
 	const GLuint progId = glCreateProgram();
 	glAttachShader(progId, vertShaderId);
