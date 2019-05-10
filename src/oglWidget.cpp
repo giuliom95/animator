@@ -61,48 +61,55 @@ void OGLWidget::initializeGL() {
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_TEXTURE_2D);
 
+	///////////////////////////////
+	// Canvas presentation setup //
+	///////////////////////////////
 	glGenTextures(1, &canvasTexId);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glGenTextures(1, &strokeTexId);
-	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	newCanvas(1920, 1080);
-
-	////////////////////////////////////////////
-	// Shader program for canvas presentation //
-	////////////////////////////////////////////
 	const auto showCanvas_vertShadId = loadShader("shaders/showCanvas.vert.glsl", GL_VERTEX_SHADER);
 	const auto showCanvas_fragShadId = loadShader("shaders/showCanvas.frag.glsl", GL_FRAGMENT_SHADER);
-	
 	showCanvas_progId = linkShaderProgram(showCanvas_vertShadId, showCanvas_fragShadId);
-
 	glDeleteShader(showCanvas_vertShadId);
 	glDeleteShader(showCanvas_fragShadId);
-
 	showCanvas_matrixLocId		= glGetUniformLocation(showCanvas_progId, "view");
 	showCanvas_strokeTexLocId 	= glGetUniformLocation(showCanvas_progId, "stroke");
 	showCanvas_canvasTexLocId 	= glGetUniformLocation(showCanvas_progId, "canvas");
 	showCanvas_blurSwitchLocId	= glGetUniformLocation(showCanvas_progId, "blur");
 
-	////////////////////////////////////////////
-	// Shader program for canvas manipulation //
-	////////////////////////////////////////////
+
+	////////////////////////////
+	// Stroke managment setup //
+	////////////////////////////
+	glGenTextures(1, &strokeTexId);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 	const auto stroke_VertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
 	const auto stroke_FragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
-	
 	stroke_progId = linkShaderProgram(stroke_VertShadId, stroke_FragShadId);
-
 	glDeleteShader(stroke_VertShadId);
 	glDeleteShader(stroke_FragShadId);
-
 	stroke_strokeTexLocId		= glGetUniformLocation(stroke_progId, "stroke");
 	stroke_mousePosLocId		= glGetUniformLocation(stroke_progId, "mousePos");
 	stroke_lastMousePosLocId	= glGetUniformLocation(stroke_progId, "lastMousePos");
+	stroke_pointsPosLocId		= glGetUniformBlockIndex(stroke_progId, "strokeBlock");
+
+	glGenBuffers(1, &stroke_ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, stroke_ubo);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(GLuint) * 2 * STROKE_SIZE, NULL, GL_DYNAMIC_DRAW);
+	stroke_points = static_cast<GLuint*>(glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY));
+	for(auto i = 0; i < 2*STROKE_SIZE; ++i) stroke_points[i] = 120;
+	glUniformBlockBinding(stroke_progId, stroke_pointsPosLocId, 0);
+
+	///////////////////////
+	// Populate textures //
+	///////////////////////
+	newCanvas(1920, 1080);
+
 
 	/////////////////////////////
 	// Generate vertex buffers //
@@ -112,7 +119,6 @@ void OGLWidget::initializeGL() {
 
 	glGenBuffers(1, &canvasUvBuf);
 	glGenBuffers(1, &canvasVtxBuf);
-	
 	const GLfloat vtxBufData[] = {
 			  0.0f, 0.0f,
 		imageWidth, 0.0f,
@@ -122,7 +128,6 @@ void OGLWidget::initializeGL() {
 	glBindBuffer(GL_ARRAY_BUFFER, canvasVtxBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
 	const GLfloat uvBufData[] = {
 		0.0f, 0.0f,
 		1.0f, 0.0f,
@@ -132,7 +137,6 @@ void OGLWidget::initializeGL() {
 	glBindBuffer(GL_ARRAY_BUFFER, canvasUvBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
@@ -167,6 +171,8 @@ void OGLWidget::strokeManagement() {
 
 	glUniform2i(stroke_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
 	glUniform2i(stroke_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, stroke_ubo);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

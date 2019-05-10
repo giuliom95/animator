@@ -19,6 +19,8 @@
 
 #include "utilities.hpp"
 
+#define STROKE_SIZE 1024
+
 class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 	Q_OBJECT
 public:
@@ -63,11 +65,15 @@ private:
 	GLuint canvasUvBuf;
 	QOpenGLVertexArrayObject vao;
 
+	GLuint	stroke_ubo;
 	GLuint	stroke_progId;
 	GLuint	stroke_strokeTexLocId;
 	GLuint	stroke_mousePosLocId;
 	GLuint	stroke_lastMousePosLocId;
 	bool	stroke_blur;
+	GLuint*	stroke_points;
+	GLuint	stroke_pointsPosLocId;
+
 
 	GLuint showCanvas_progId;
 	GLuint showCanvas_matrixLocId;
