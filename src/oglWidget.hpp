@@ -73,7 +73,9 @@ private:
 	GLuint 						showCanvas_blurSwitchLocId;
 
 	GLuint loadShader(std::string path, GLenum shaderType);
-	GLuint linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId);
+	GLuint linkShaderProgram(	GLuint vertShaderId, 
+								GLuint fragShaderId,
+								GLuint geomShaderId = 0);
 };
 
 #endif

@@ -72,7 +72,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(300, 300);
+	newCanvas(1280, 720);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -93,13 +93,13 @@ void OGLWidget::initializeGL() {
 	////////////////////////////////////////////
 	// Shader program for canvas manipulation //
 	////////////////////////////////////////////
-	const auto stroke_VertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
-	const auto stroke_FragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
-	
-	stroke_progId = linkShaderProgram(stroke_VertShadId, stroke_FragShadId);
-
-	glDeleteShader(stroke_VertShadId);
-	glDeleteShader(stroke_FragShadId);
+	const auto stroke_vertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
+	const auto stroke_fragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
+	const auto stroke_geomShadId = loadShader("shaders/stroke.geom.glsl", GL_GEOMETRY_SHADER);
+	stroke_progId = linkShaderProgram(stroke_vertShadId, stroke_fragShadId, stroke_geomShadId);
+	glDeleteShader(stroke_vertShadId);
+	glDeleteShader(stroke_fragShadId);
+	glDeleteShader(stroke_geomShadId);
 
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
@@ -316,11 +316,14 @@ GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	return shaderId;
 }
 
-GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId) {
+GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, 
+									GLuint fragShaderId, 
+									GLuint geomShaderId) {
 	// Link the program
 	const GLuint progId = glCreateProgram();
 	glAttachShader(progId, vertShaderId);
 	glAttachShader(progId, fragShaderId);
+	if(geomShaderId != 0) glAttachShader(progId, geomShaderId);
 	glLinkProgram(progId);
 
 	// Check the program
