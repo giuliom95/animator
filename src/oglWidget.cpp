@@ -7,7 +7,8 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
 												stroke_blur{true},
-												vao{} {
+												canvasVao{},
+												stroke_vao{} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -71,7 +72,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(1920, 1080);
+	newCanvas(300, 300);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -104,24 +105,26 @@ void OGLWidget::initializeGL() {
 	stroke_mousePosLocId		= glGetUniformLocation(stroke_progId, "mousePos");
 	stroke_lastMousePosLocId	= glGetUniformLocation(stroke_progId, "lastMousePos");
 
-	/////////////////////////////
-	// Generate vertex buffers //
-	/////////////////////////////
-	vao.create();
-	vao.bind();
+
+	////////////////////////////////////
+	// Generate canvas vertex buffers //
+	////////////////////////////////////
+	canvasVao.create();
+	canvasVao.bind();
 
 	glGenBuffers(1, &canvasUvBuf);
 	glGenBuffers(1, &canvasVtxBuf);
 	
-	const GLfloat vtxBufData[] = {
+	const GLfloat canvas_vtxBufData[] = {
 			  0.0f, 0.0f,
 		imageWidth, 0.0f,
 			  0.0f, imageHeight,
 		imageWidth, imageHeight
 	};
 	glBindBuffer(GL_ARRAY_BUFFER, canvasVtxBuf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vtxBufData), vtxBufData, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(canvas_vtxBufData), canvas_vtxBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
 
 	const GLfloat uvBufData[] = {
 		0.0f, 0.0f,
@@ -132,9 +135,25 @@ void OGLWidget::initializeGL() {
 	glBindBuffer(GL_ARRAY_BUFFER, canvasUvBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
-	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
+
+
+	////////////////////////////////////
+	// Generate stroke vertex buffers //
+	////////////////////////////////////
+	stroke_vao.create();
+	stroke_vao.bind();
+	glGenBuffers(1, &stroke_vtxBuf);
+	const GLfloat stroke_vtxBufData[] = {
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			0.0f, 1.0f,
+			1.0f, 1.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(stroke_vtxBufData), stroke_vtxBufData, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
 
 	//////////////////
 	// Generate FBO //
@@ -161,14 +180,15 @@ void OGLWidget::strokeManagement() {
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glUniform1i(stroke_strokeTexLocId, 0);
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	//glUniform1i(stroke_strokeTexLocId, 0);
 
-	glUniform2i(stroke_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
-	glUniform2i(stroke_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
+	//glUniform2i(stroke_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
+	//glUniform2i(stroke_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
 
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	stroke_vao.bind();
+	glDrawArrays(GL_LINE_STRIP, 0, 4);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -181,7 +201,7 @@ void OGLWidget::paintGL() {
 
 	if(mouseButtonsPressed[0])
 		strokeManagement();
-
+	
 	glViewport(0,0,widgetWidth,widgetHeight);
 	glUseProgram(showCanvas_progId);
 
@@ -210,8 +230,8 @@ void OGLWidget::paintGL() {
 	glUniform1i(showCanvas_blurSwitchLocId, stroke_blur);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
+	
+	canvasVao.bind();
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

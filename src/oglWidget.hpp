@@ -59,9 +59,12 @@ private:
 
 	GLuint fboId;
 
-	GLuint canvasVtxBuf;
-	GLuint canvasUvBuf;
-	QOpenGLVertexArrayObject vao;
+	GLuint						canvasVtxBuf;
+	GLuint						canvasUvBuf;
+	QOpenGLVertexArrayObject	canvasVao;
+
+	GLuint						stroke_vtxBuf;
+	QOpenGLVertexArrayObject	stroke_vao;
 
 	GLuint	stroke_progId;
 	GLuint	stroke_strokeTexLocId;
