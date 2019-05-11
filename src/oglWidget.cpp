@@ -7,8 +7,9 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
 												stroke_blur{true},
-												canvasVao{},
-												stroke_vao{} {
+												showCanvas_vao{},
+												stroke_vao{},
+												stroke_points{} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -17,16 +18,16 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 
 
 void OGLWidget::newCanvas(const int w, const int h) {
-	imageWidth = w;
-	imageHeight = h;
+	canvasWidth = w;
+	canvasHeight = h;
 
 	const auto clearCanv = std::vector<GLubyte>(w*h*3, 255);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth, imageHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, canvasWidth, canvasHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
 
 	const auto clearAlpha = std::vector<GLubyte>(w*h, 0);
 	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, imageWidth, imageHeight, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, canvasWidth, canvasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
 
 	update();
 }
@@ -59,7 +60,6 @@ void OGLWidget::switchBlur() {
 
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glEnable(GL_TEXTURE_2D);
 
 	glGenTextures(1, &canvasTexId);
@@ -101,38 +101,34 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke_VertShadId);
 	glDeleteShader(stroke_FragShadId);
 
-	stroke_strokeTexLocId		= glGetUniformLocation(stroke_progId, "stroke");
-	stroke_mousePosLocId		= glGetUniformLocation(stroke_progId, "mousePos");
-	stroke_lastMousePosLocId	= glGetUniformLocation(stroke_progId, "lastMousePos");
-
-
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
 	////////////////////////////////////
-	canvasVao.create();
-	canvasVao.bind();
+	showCanvas_vao.create();
+	showCanvas_vao.bind();
 
-	glGenBuffers(1, &canvasUvBuf);
-	glGenBuffers(1, &canvasVtxBuf);
-	
+	GLuint showCanvas_vtxBuf;
+	glGenBuffers(1, &showCanvas_vtxBuf);	
 	const GLfloat canvas_vtxBufData[] = {
 			  0.0f, 0.0f,
-		imageWidth, 0.0f,
-			  0.0f, imageHeight,
-		imageWidth, imageHeight
+		canvasWidth, 0.0f,
+			  0.0f, canvasHeight,
+		canvasWidth, canvasHeight
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, canvasVtxBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, showCanvas_vtxBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(canvas_vtxBufData), canvas_vtxBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
+	GLuint showCanvas_uvBuf;
+	glGenBuffers(1, &showCanvas_uvBuf);
 	const GLfloat uvBufData[] = {
 		0.0f, 0.0f,
 		1.0f, 0.0f,
 		0.0f, 1.0f,
 		1.0f, 1.0f
 	};
-	glBindBuffer(GL_ARRAY_BUFFER, canvasUvBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, showCanvas_uvBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(uvBufData), uvBufData, GL_STATIC_DRAW);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(1);
@@ -144,15 +140,8 @@ void OGLWidget::initializeGL() {
 	stroke_vao.create();
 	stroke_vao.bind();
 	glGenBuffers(1, &stroke_vtxBuf);
-	const GLfloat stroke_vtxBufData[] = {
-			0.0f, 0.0f,
-			1.0f, 0.0f,
-			0.0f, 1.0f,
-			1.0f, 1.0f
-	};
 	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(stroke_vtxBufData), stroke_vtxBufData, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(stroke_vtxBufData), stroke_vtxBufData, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 
 	//////////////////
@@ -172,28 +161,32 @@ void OGLWidget::resizeGL(int w, int h) {
 }
 
 void OGLWidget::strokeManagement() {
+
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
-	glViewport(0, 0, imageWidth, imageHeight);
+	stroke_vao.bind();
+	stroke_points.push_back((float)mouseOnCanvasX / canvasWidth);
+	stroke_points.push_back((float)mouseOnCanvasY / canvasHeight);
+	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	glViewport(0, 0, canvasWidth, canvasHeight);
+	glClearColor(0, 0, 0, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(stroke_progId);
 
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	//glUniform1i(stroke_strokeTexLocId, 0);
+	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
 
-	//glUniform2i(stroke_mousePosLocId,     mouseOnCanvasX,     mouseOnCanvasY);
-	//glUniform2i(stroke_lastMousePosLocId, lastMouseOnCanvasX, lastMouseOnCanvasY);
-
-	stroke_vao.bind();
-	glDrawArrays(GL_LINE_STRIP, 0, 4);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	lastMouseOnCanvasX = mouseOnCanvasX;
 	lastMouseOnCanvasY = mouseOnCanvasY;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
@@ -229,9 +222,10 @@ void OGLWidget::paintGL() {
 
 	glUniform1i(showCanvas_blurSwitchLocId, stroke_blur);
 
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 	
-	canvasVao.bind();
+	showCanvas_vao.bind();
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 

@@ -24,7 +24,7 @@ class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
 	OGLWidget(QPushButton& zoomButton);
 
-	void newCanvas(const int imageWidth, const int imageHeight);
+	void newCanvas(const int canvasWidth, const int imageHeight);
 	void strokeManagement();
 
 	void setZoom(float zoomFactor, float centerX, float centerY);
@@ -42,7 +42,7 @@ protected:
 
 private:
 	int		widgetWidth,		widgetHeight;
-	int		imageWidth,			imageHeight;
+	int		canvasWidth,		canvasHeight;
 	float	cameraPanX,			cameraPanY;
 	float	lastMouseX,			lastMouseY;
 	int		mouseOnCanvasX,		mouseOnCanvasY;
@@ -59,24 +59,18 @@ private:
 
 	GLuint fboId;
 
-	GLuint						canvasVtxBuf;
-	GLuint						canvasUvBuf;
-	QOpenGLVertexArrayObject	canvasVao;
-
-	GLuint						stroke_vtxBuf;
 	QOpenGLVertexArrayObject	stroke_vao;
+	GLuint 						stroke_vtxBuf;
+	GLuint						stroke_progId;
+	bool						stroke_blur;
+	std::vector<GLfloat>		stroke_points;
 
-	GLuint	stroke_progId;
-	GLuint	stroke_strokeTexLocId;
-	GLuint	stroke_mousePosLocId;
-	GLuint	stroke_lastMousePosLocId;
-	bool	stroke_blur;
-
-	GLuint showCanvas_progId;
-	GLuint showCanvas_matrixLocId;
-	GLuint showCanvas_strokeTexLocId;
-	GLuint showCanvas_canvasTexLocId;
-	GLuint showCanvas_blurSwitchLocId;
+	QOpenGLVertexArrayObject	showCanvas_vao;
+	GLuint 						showCanvas_progId;
+	GLuint 						showCanvas_matrixLocId;
+	GLuint 						showCanvas_strokeTexLocId;
+	GLuint 						showCanvas_canvasTexLocId;
+	GLuint 						showCanvas_blurSwitchLocId;
 
 	GLuint loadShader(std::string path, GLenum shaderType);
 	GLuint linkShaderProgram(GLuint vertShaderId, GLuint fragShaderId);

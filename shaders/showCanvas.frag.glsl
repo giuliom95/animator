@@ -43,8 +43,9 @@ float blurStroke() {
 
 void main(){
 
-    float v = blur ? blurStroke() : texture(stroke, uv).r;
+    /*float v = blur ? blurStroke() : texture(stroke, uv).r;
     v *= .5;
-    color = 1 + -vec3(v);
+    color = 1 + -vec3(v);*/
     
+    color = vec3(texture(stroke, uv).r);
 }
