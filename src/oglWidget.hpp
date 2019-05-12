@@ -62,7 +62,7 @@ private:
 	QOpenGLVertexArrayObject	stroke_vao;
 	GLuint 						stroke_vtxBuf;
 	GLuint						stroke_progId;
-	bool						stroke_blur;
+	GLuint						stroke_texLocId;
 	std::vector<GLfloat>		stroke_points;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;

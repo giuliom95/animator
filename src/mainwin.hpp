@@ -13,11 +13,9 @@ public:
 
 public slots:
 	void handleZoomButton();
-	void handleBlurSwitch();
 
 private:
 	QPushButton*	zoomButton;
-	QCheckBox*		blurSwitch;
 	OGLWidget*		oglWidget;
 };
 

@@ -6,7 +6,6 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
-												stroke_blur{true},
 												showCanvas_vao{},
 												stroke_vao{},
 												stroke_points{} {
@@ -52,11 +51,6 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 	update();
 }
 
-void OGLWidget::switchBlur() {
-	stroke_blur = !stroke_blur;
-	update();
-}
-
 
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
@@ -72,16 +66,14 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(1280, 720);
+	newCanvas(720, 720);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
 	////////////////////////////////////////////
 	const auto showCanvas_vertShadId = loadShader("shaders/showCanvas.vert.glsl", GL_VERTEX_SHADER);
 	const auto showCanvas_fragShadId = loadShader("shaders/showCanvas.frag.glsl", GL_FRAGMENT_SHADER);
-	
 	showCanvas_progId = linkShaderProgram(showCanvas_vertShadId, showCanvas_fragShadId);
-
 	glDeleteShader(showCanvas_vertShadId);
 	glDeleteShader(showCanvas_fragShadId);
 
@@ -100,6 +92,8 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke_vertShadId);
 	glDeleteShader(stroke_fragShadId);
 	glDeleteShader(stroke_geomShadId);
+
+	stroke_texLocId = glGetUniformLocation(stroke_progId, "stroke");
 
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
@@ -173,15 +167,16 @@ void OGLWidget::strokeManagement() {
 	glEnableVertexAttribArray(0);
 
 	glViewport(0, 0, canvasWidth, canvasHeight);
-	glClearColor(0, 0, 0, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
 	glUseProgram(stroke_progId);
 
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
-	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glUniform1i(stroke_texLocId, 0);
 
+	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
 
 	lastMouseOnCanvasX = mouseOnCanvasX;
 	lastMouseOnCanvasY = mouseOnCanvasY;
@@ -219,8 +214,6 @@ void OGLWidget::paintGL() {
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
 	glUniform1i(showCanvas_canvasTexLocId, 1);
-
-	glUniform1i(showCanvas_blurSwitchLocId, stroke_blur);
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
