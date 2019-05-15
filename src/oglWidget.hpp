@@ -45,6 +45,9 @@ private:
 	int		canvasWidth,		canvasHeight;
 	float	cameraPanX,			cameraPanY;
 	float	lastMouseX,			lastMouseY;
+	int		mouseOnCanvasX,		mouseOnCanvasY;
+	int		lastMouseOnCanvasX,	lastMouseOnCanvasY;
+
 	float zoomFactor;
 
 	QTime time;
@@ -57,13 +60,14 @@ private:
 	GLuint strokeTexId;
 
 	GLuint fboId;
-	QOpenGLVertexArrayObject vao;
 
+	QOpenGLVertexArrayObject	stroke_vao;
 	GLuint 						stroke_vtxBuf;
 	GLuint						stroke_progId;
-	GLuint						stroke_mousePosLocId;
-	GLuint						stroke_lastMousePosLocId;
+	std::vector<GLfloat>		stroke_points;
+	bool						stroke_clearSig;
 
+	QOpenGLVertexArrayObject	showCanvas_vao;
 	GLuint 						showCanvas_progId;
 	GLuint 						showCanvas_matrixLocId;
 	GLuint 						showCanvas_strokeTexLocId;

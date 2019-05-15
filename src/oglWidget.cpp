@@ -6,11 +6,18 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												zoomButton(zoomButton),
-												vao{} {
+												showCanvas_vao{},
+												stroke_vao{},
+												stroke_points{},
+												stroke_clearSig{false} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
 	setFormat(format);
+
+	auto* updateScheduler = new QTimer(this);
+	connect(updateScheduler, SIGNAL(timeout()), this, SLOT(update()));
+	updateScheduler->start(20);
 };
 
 
@@ -43,8 +50,6 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 	stream << std::fixed << std::setprecision(1);
 	stream << (100 * zoomFactor) << "%";
 	zoomButton.setText(stream.str().c_str());
-
-	update();
 }
 
 
@@ -84,18 +89,17 @@ void OGLWidget::initializeGL() {
 	////////////////////////////////////////////
 	const auto stroke_vertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
 	const auto stroke_fragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
-	stroke_progId = linkShaderProgram(stroke_vertShadId, stroke_fragShadId);
+	const auto stroke_geomShadId = loadShader("shaders/stroke.geom.glsl", GL_GEOMETRY_SHADER);
+	stroke_progId = linkShaderProgram(stroke_vertShadId, stroke_fragShadId, stroke_geomShadId);
 	glDeleteShader(stroke_vertShadId);
 	glDeleteShader(stroke_fragShadId);
-
-	stroke_mousePosLocId		= glGetUniformLocation(stroke_progId, "mousePos");
-	stroke_lastMousePosLocId	= glGetUniformLocation(stroke_progId, "lastMousePos");
+	glDeleteShader(stroke_geomShadId);
 
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
 	////////////////////////////////////
-	vao.create();
-	vao.bind();
+	showCanvas_vao.create();
+	showCanvas_vao.bind();
 
 	GLuint showCanvas_vtxBuf;
 	glGenBuffers(1, &showCanvas_vtxBuf);	
@@ -123,14 +127,23 @@ void OGLWidget::initializeGL() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(1);
 
+
+	////////////////////////////////////
+	// Generate stroke vertex buffers //
+	////////////////////////////////////
+	stroke_vao.create();
+	stroke_vao.bind();
+	glGenBuffers(1, &stroke_vtxBuf);
+	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glEnableVertexAttribArray(0);
+
 	//////////////////
 	// Generate FBO //
 	//////////////////
 	glGenFramebuffers(1, &fboId);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
-
-	// Attach the binded framebuffer to texture
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, strokeTexId, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, canvasTexId, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 }
@@ -141,8 +154,15 @@ void OGLWidget::resizeGL(int w, int h) {
 }
 
 void OGLWidget::strokeManagement() {
+
 	glBlendEquation(GL_MAX);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+	stroke_vao.bind();
+	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
 
 	glViewport(0, 0, canvasWidth, canvasHeight);
 	glUseProgram(stroke_progId);
@@ -150,23 +170,20 @@ void OGLWidget::strokeManagement() {
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
-	glUniform2i(stroke_mousePosLocId,		mouseOnCanvasX,		mouseOnCanvasY);
-	glUniform2i(stroke_lastMousePosLocId,	lastMouseOnCanvasX,	lastMouseOnCanvasY);
+	glClearColor(0,0,0,1);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	lastMouseOnCanvasX = mouseOnCanvasX;
-	lastMouseOnCanvasY = mouseOnCanvasY;
+	glBlendEquation(GL_FUNC_ADD);
 }
-
 
 void OGLWidget::paintGL() {
 
-	if(mouseButtonsPressed[0])
-		strokeManagement();
 	
-	glBlendEquation(GL_FUNC_ADD);
-
+	strokeManagement();
+	
+	showCanvas_vao.bind();
 	glViewport(0,0,widgetWidth,widgetHeight);
 	glUseProgram(showCanvas_progId);
 
@@ -194,7 +211,7 @@ void OGLWidget::paintGL() {
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
-
+	
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
@@ -205,14 +222,21 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	lastMouseY = (int)mouseScreenPos.y();
 
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
+
+	if(mouseButtonsPressed[0]) {
+		mouseMoveEvent(event);
+		mouseMoveEvent(event);
+	}
 }
 
 void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
+	
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
+	
+	stroke_points.clear();
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
-
 	const auto invZoom = 1 / zoomFactor;
 
 	const auto mousePos = event->screenPos();
@@ -235,9 +259,6 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 		stroke_points.push_back((float)mouseOnCanvasX / canvasWidth);
 		stroke_points.push_back((float)mouseOnCanvasY / canvasHeight);
 	}
-
-	if(mouseButtonsPressed[0] | mouseButtonsPressed[1] | mouseButtonsPressed[2])
-		update();
 }
 
 void OGLWidget::wheelEvent(QWheelEvent *event) {
