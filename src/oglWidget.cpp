@@ -45,6 +45,8 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 	stream << std::fixed << std::setprecision(1);
 	stream << (100 * zoomFactor) << "%";
 	zoomButton.setText(stream.str().c_str());
+
+	update();
 }
 
 
@@ -169,9 +171,6 @@ void OGLWidget::strokeManagement() {
 
 	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
 
-	lastMouseOnCanvasX = mouseOnCanvasX;
-	lastMouseOnCanvasY = mouseOnCanvasY;
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -219,14 +218,6 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	lastMouseX = (int)mouseScreenPos.x();
 	lastMouseY = (int)mouseScreenPos.y();
 
-
-	const auto mouseWidgetPos = event->pos();
-	const auto invZoom = 1 / zoomFactor;
-	mouseOnCanvasX = invZoom*mouseWidgetPos.x() + cameraPanX;
-	mouseOnCanvasY = invZoom*mouseWidgetPos.y() + cameraPanY;
-	lastMouseOnCanvasX = mouseOnCanvasX;
-	lastMouseOnCanvasY = mouseOnCanvasY;
-
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
 	update();
 }
@@ -254,16 +245,12 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 	}
 
 	const auto widgetMousePos = event->pos();
-	mouseOnCanvasX = invZoom*widgetMousePos.x() + cameraPanX;
-	mouseOnCanvasY = invZoom*widgetMousePos.y() + cameraPanY;
+	const auto mouseOnCanvasX = invZoom*widgetMousePos.x() + cameraPanX;
+	const auto mouseOnCanvasY = invZoom*widgetMousePos.y() + cameraPanY;
 
 	if(mouseButtonsPressed[0]) {
 		stroke_points.push_back((float)mouseOnCanvasX / canvasWidth);
 		stroke_points.push_back((float)mouseOnCanvasY / canvasHeight);
-		const auto t1 = QTime::currentTime();
-		std::cout << time.msecsTo(t1) << " ";
-		time = t1;
-		std::cout << mouseOnCanvasX << " " << mouseOnCanvasY << std::endl;
 	}
 
 	if(mouseButtonsPressed[0] | mouseButtonsPressed[1] | mouseButtonsPressed[2])

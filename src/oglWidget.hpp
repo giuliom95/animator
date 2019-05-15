@@ -45,9 +45,6 @@ private:
 	int		canvasWidth,		canvasHeight;
 	float	cameraPanX,			cameraPanY;
 	float	lastMouseX,			lastMouseY;
-	int		mouseOnCanvasX,		mouseOnCanvasY;
-	int		lastMouseOnCanvasX,	lastMouseOnCanvasY;
-
 	float zoomFactor;
 
 	QTime time;
