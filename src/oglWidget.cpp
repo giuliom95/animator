@@ -13,16 +13,6 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
 	setFormat(format);
-
-	time = QTime::currentTime();
-	
-	QTimer* mouseTimer = new QTimer(this);
-	connect(mouseTimer, SIGNAL(timeout()), this, SLOT(mouseHandling()));
-	mouseTimer->start(0);
-
-	QTimer* updateTimer = new QTimer(this);
-	connect(updateTimer, SIGNAL(timeout()), this, SLOT(update()));
-	updateTimer->start(20);
 };
 
 
@@ -61,6 +51,7 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
 	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
 
 	glGenTextures(1, &canvasTexId);
 	glBindTexture(GL_TEXTURE_2D, canvasTexId);
@@ -147,7 +138,6 @@ void OGLWidget::initializeGL() {
 	//////////////////
 	glGenFramebuffers(1, &fboId);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
-	glEnable(GL_BLEND);
 	glBlendEquationi(0, GL_MAX);
 
 	// Attach the binded framebuffer to texture
@@ -229,7 +219,6 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	lastMouseX = (int)mouseScreenPos.x();
 	lastMouseY = (int)mouseScreenPos.y();
 
-	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
 
 	const auto mouseWidgetPos = event->pos();
 	const auto invZoom = 1 / zoomFactor;
@@ -237,25 +226,22 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	mouseOnCanvasY = invZoom*mouseWidgetPos.y() + cameraPanY;
 	lastMouseOnCanvasX = mouseOnCanvasX;
 	lastMouseOnCanvasY = mouseOnCanvasY;
+
+	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
+	update();
 }
 
 void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
+
+	update();
 }
 
-void OGLWidget::wheelEvent(QWheelEvent *event) {
-	const auto mousePos = event->pos();
-	const auto scroll = event->angleDelta().y() / 120.f;
-	const auto newZoomFactor = zoomFactor + 0.5*scroll;
-
-	setZoom(newZoomFactor, mousePos.x(), mousePos.y());
-}
-
-void OGLWidget::mouseHandling() {
+void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 	const auto invZoom = 1 / zoomFactor;
 
-	const auto mousePos = QCursor::pos();
+	const auto mousePos = event->screenPos();
 
 	if(mouseButtonsPressed[2]) {
 		const int curMouseX = mousePos.x();
@@ -267,7 +253,7 @@ void OGLWidget::mouseHandling() {
 		lastMouseY = curMouseY;
 	}
 
-	const auto widgetMousePos = mapFromGlobal(mousePos);
+	const auto widgetMousePos = event->pos();
 	mouseOnCanvasX = invZoom*widgetMousePos.x() + cameraPanX;
 	mouseOnCanvasY = invZoom*widgetMousePos.y() + cameraPanY;
 
@@ -280,6 +266,16 @@ void OGLWidget::mouseHandling() {
 		std::cout << mouseOnCanvasX << " " << mouseOnCanvasY << std::endl;
 	}
 
+	if(mouseButtonsPressed[0] | mouseButtonsPressed[1] | mouseButtonsPressed[2])
+		update();
+}
+
+void OGLWidget::wheelEvent(QWheelEvent *event) {
+	const auto mousePos = event->pos();
+	const auto scroll = event->angleDelta().y() / 120.f;
+	const auto newZoomFactor = zoomFactor + 0.5*scroll;
+
+	setZoom(newZoomFactor, mousePos.x(), mousePos.y());
 }
 
 GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
