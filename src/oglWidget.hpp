@@ -37,8 +37,10 @@ protected:
 
 	void mousePressEvent(QMouseEvent* event);
 	void mouseReleaseEvent(QMouseEvent* event);
-	void mouseMoveEvent(QMouseEvent* event);
 	void wheelEvent(QWheelEvent *event);
+
+public slots:
+	void mouseHandling();
 
 private:
 	int		widgetWidth,		widgetHeight;
@@ -49,6 +51,8 @@ private:
 	int		lastMouseOnCanvasX,	lastMouseOnCanvasY;
 
 	float zoomFactor;
+
+	QTime time;
 
 	std::array<bool, 3> mouseButtonsPressed;
 
@@ -62,7 +66,6 @@ private:
 	QOpenGLVertexArrayObject	stroke_vao;
 	GLuint 						stroke_vtxBuf;
 	GLuint						stroke_progId;
-	GLuint						stroke_texLocId;
 	std::vector<GLfloat>		stroke_points;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;

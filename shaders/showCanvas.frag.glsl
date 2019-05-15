@@ -7,5 +7,5 @@ out vec3 color;
 
 void main(){
     color = vec3(texture(stroke, uv).r);
-    color = 1 + -color;
+    color = 1 - color;
 }

@@ -2,7 +2,7 @@
 
 AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	resize(600, 600);
-	setWindowTitle("Animator");
+	setWindowTitle(" ");
 
 	QVBoxLayout* mainLayout = new QVBoxLayout;
 	mainLayout->setContentsMargins(0,0,0,0);
