@@ -26,6 +26,7 @@ public:
 
 	void newCanvas(const int canvasWidth, const int imageHeight);
 	void strokeManagement();
+	void transferStroke2Canvas();
 
 	void setZoom(float zoomFactor, float centerX, float centerY);
 	void switchBlur();
@@ -41,31 +42,30 @@ protected:
 	void wheelEvent(QWheelEvent *event);
 
 private:
-	int		widgetWidth,		widgetHeight;
-	int		canvasWidth,		canvasHeight;
-	float	cameraPanX,			cameraPanY;
-	float	lastMouseX,			lastMouseY;
-	int		mouseOnCanvasX,		mouseOnCanvasY;
-	int		lastMouseOnCanvasX,	lastMouseOnCanvasY;
+	int							widgetWidth,		widgetHeight;
+	int							canvasWidth,		canvasHeight;
+	float						cameraPanX,			cameraPanY;
+	float						lastMouseX,			lastMouseY;
+	int							mouseOnCanvasX,		mouseOnCanvasY;
+	int							lastMouseOnCanvasX,	lastMouseOnCanvasY;
 
 	float zoomFactor;
 
-	QTime time;
+	QTime 						time;
 
-	std::array<bool, 3> mouseButtonsPressed;
+	std::array<bool, 3> 		mouseButtonsPressed;
 
-	QPushButton& zoomButton;
+	QPushButton& 				zoomButton;
 
-	GLuint canvasTexId;
-	GLuint strokeTexId;
+	GLuint						canvasTexId;
+	GLuint						strokeTexId;
 
-	GLuint fboId;
+	GLuint						fboId;
 
 	QOpenGLVertexArrayObject	stroke_vao;
 	GLuint 						stroke_vtxBuf;
 	GLuint						stroke_progId;
 	std::vector<GLfloat>		stroke_points;
-	bool						stroke_clearSig;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;
 	GLuint 						showCanvas_progId;
@@ -73,6 +73,12 @@ private:
 	GLuint 						showCanvas_strokeTexLocId;
 	GLuint 						showCanvas_canvasTexLocId;
 	GLuint 						showCanvas_blurSwitchLocId;
+
+	QOpenGLVertexArrayObject	stroke2canvas_vao;
+	GLuint 						stroke2canvas_progId;
+	GLuint 						stroke2canvas_strokeTexLocId;
+	GLuint 						stroke2canvas_canvasTexLocId;
+	bool						stroke2canvas_doIt;
 
 	GLuint loadShader(std::string path, GLenum shaderType);
 	GLuint linkShaderProgram(	GLuint vertShaderId, 

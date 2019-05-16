@@ -9,7 +9,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												showCanvas_vao{},
 												stroke_vao{},
 												stroke_points{},
-												stroke_clearSig{false} {
+												stroke2canvas_doIt{true} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -95,6 +95,18 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke_fragShadId);
 	glDeleteShader(stroke_geomShadId);
 
+	//////////////////////////////////////////////////
+	// Shader program for stroke to canvas transfer //
+	//////////////////////////////////////////////////
+	const auto stroke2canvas_vertShadId = loadShader("shaders/stroke2canvas.vert.glsl", GL_VERTEX_SHADER);
+	const auto stroke2canvas_fragShadId = loadShader("shaders/stroke2canvas.frag.glsl", GL_FRAGMENT_SHADER);
+	stroke2canvas_progId = linkShaderProgram(stroke2canvas_vertShadId, stroke2canvas_fragShadId);
+	glDeleteShader(stroke2canvas_vertShadId);
+	glDeleteShader(stroke2canvas_fragShadId);
+
+	stroke2canvas_strokeTexLocId 	= glGetUniformLocation(stroke2canvas_progId, "stroke");
+	stroke2canvas_canvasTexLocId 	= glGetUniformLocation(stroke2canvas_progId, "canvas");
+
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
 	////////////////////////////////////
@@ -127,14 +139,31 @@ void OGLWidget::initializeGL() {
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(1);
 
-
-	////////////////////////////////////
-	// Generate stroke vertex buffers //
-	////////////////////////////////////
+	//////////////////////////
+	// Stroke vertex buffer //
+	//////////////////////////
 	stroke_vao.create();
 	stroke_vao.bind();
 	glGenBuffers(1, &stroke_vtxBuf);
 	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glEnableVertexAttribArray(0);
+
+	////////////////////////////////////
+	// Stroke to canvas vertex buffer //
+	////////////////////////////////////
+	stroke2canvas_vao.create();
+	stroke2canvas_vao.bind();
+	GLuint stroke2canvas_vtxBuf;
+	glGenBuffers(1, &stroke2canvas_vtxBuf);	
+	const GLfloat stroke2canvas_vtxBufData[] = {
+			0.0f, 0.0f,
+			1.0f, 0.0f,
+			0.0f, 1.0f,
+			1.0f, 1.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, stroke2canvas_vtxBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(stroke2canvas_vtxBufData), stroke2canvas_vtxBufData, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
 	//////////////////
@@ -178,9 +207,40 @@ void OGLWidget::strokeManagement() {
 	glBlendEquation(GL_FUNC_ADD);
 }
 
+void OGLWidget::transferStroke2Canvas() {
+
+	glDisable(GL_BLEND);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+	stroke2canvas_vao.bind();
+	glViewport(0, 0, canvasWidth, canvasHeight);
+	glUseProgram(stroke2canvas_progId);
+
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(1, buf);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glUniform1i(stroke2canvas_strokeTexLocId, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, canvasTexId);
+	glUniform1i(stroke2canvas_canvasTexLocId, 1);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	stroke2canvas_doIt = false;
+	glEnable(GL_BLEND);
+}
+
+
 void OGLWidget::paintGL() {
 
-	
+	if(stroke2canvas_doIt)
+		transferStroke2Canvas();
+
 	strokeManagement();
 	
 	showCanvas_vao.bind();
@@ -234,6 +294,7 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
 	
 	stroke_points.clear();
+	stroke2canvas_doIt = true;
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
