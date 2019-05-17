@@ -1,9 +1,10 @@
 #version 450 core
 
-in vec2 vtx_pos;
+in vec3 point;
 
 void main() {
-    gl_Position.xy = 2 * vtx_pos - 1;
-    gl_Position.z = 0.0f;
-    gl_Position.w = 1.0f;
+	gl_Position.xy = 2 * point.xy - 1;
+	// Pressure
+	gl_Position.z = point.z;
+	gl_Position.w = 1.0f;
 }

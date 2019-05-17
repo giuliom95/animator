@@ -5,6 +5,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												cameraPanY{0},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
+												brushDown{false},
 												zoomButton(zoomButton),
 												showCanvas_vao{},
 												stroke_vao{},
@@ -190,7 +191,7 @@ void OGLWidget::strokeManagement() {
 	stroke_vao.bind();
 	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
 	glViewport(0, 0, canvasWidth, canvasHeight);
@@ -201,7 +202,7 @@ void OGLWidget::strokeManagement() {
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/2);
+	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/3);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBlendEquation(GL_FUNC_ADD);
@@ -284,6 +285,7 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
 
 	if(mouseButtonsPressed[0]) {
+		brushDown = true;
 		mouseMoveEvent(event);
 		mouseMoveEvent(event);
 	}
@@ -293,8 +295,7 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
 	
-	stroke_points.clear();
-	stroke2canvas_doIt = true;
+	liftBush();
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
@@ -316,9 +317,10 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 	const auto mouseOnCanvasX = invZoom*widgetMousePos.x() + cameraPanX;
 	const auto mouseOnCanvasY = invZoom*widgetMousePos.y() + cameraPanY;
 
-	if(mouseButtonsPressed[0]) {
+	if(brushDown) {
 		stroke_points.push_back((float)mouseOnCanvasX / canvasWidth);
 		stroke_points.push_back((float)mouseOnCanvasY / canvasHeight);
+		stroke_points.push_back(1.0f);
 	}
 }
 
@@ -329,6 +331,43 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 
 	setZoom(newZoomFactor, mousePos.x(), mousePos.y());
 }
+
+void OGLWidget::tabletEvent(QTabletEvent* event) {
+
+	const auto pressure = event->pressure();
+	if(pressure > 0.0001 && !brushDown)
+		brushDown = true;
+
+	if(pressure < 0.0001 && brushDown)
+		liftBush();
+
+	if(brushDown) {
+		const auto widgetPos = event->posF();
+		const auto canvasPos = widget2canvasCoords(widgetPos);
+		stroke_points.push_back((float)canvasPos.x() / canvasWidth);
+		stroke_points.push_back((float)canvasPos.y() / canvasHeight);
+		stroke_points.push_back(pressure);
+	}
+
+	// const auto btn = event->button();
+	// if(btn != 0)
+	// 	std::cout << btn << std::endl;
+}
+
+void OGLWidget::liftBush() {
+	stroke_points.clear();
+	brushDown = false;
+	stroke2canvas_doIt = true;
+}
+
+QPointF OGLWidget::widget2canvasCoords(const QPointF& widgetPos) {
+	const auto invZoom = 1 / zoomFactor;
+	return {
+		invZoom*widgetPos.x() + cameraPanX,
+		invZoom*widgetPos.y() + cameraPanY
+	};
+}
+
 
 GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	// Create shader

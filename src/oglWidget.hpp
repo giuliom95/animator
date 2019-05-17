@@ -36,24 +36,24 @@ protected:
 	void resizeGL(int w, int h);
 	void paintGL();
 
-	void mousePressEvent(QMouseEvent* event);
-	void mouseReleaseEvent(QMouseEvent* event);
-	void mouseMoveEvent(QMouseEvent* event);
-	void wheelEvent(QWheelEvent *event);
+	void mousePressEvent	(QMouseEvent*	event);
+	void mouseReleaseEvent	(QMouseEvent*	event);
+	void mouseMoveEvent		(QMouseEvent*	event);
+	void wheelEvent			(QWheelEvent*	event);
+	void tabletEvent		(QTabletEvent*	event);
 
 private:
 	int							widgetWidth,		widgetHeight;
 	int							canvasWidth,		canvasHeight;
 	float						cameraPanX,			cameraPanY;
 	float						lastMouseX,			lastMouseY;
-	int							mouseOnCanvasX,		mouseOnCanvasY;
-	int							lastMouseOnCanvasX,	lastMouseOnCanvasY;
 
 	float zoomFactor;
 
 	QTime 						time;
 
 	std::array<bool, 3> 		mouseButtonsPressed;
+	bool						brushDown;
 
 	QPushButton& 				zoomButton;
 
@@ -79,6 +79,11 @@ private:
 	GLuint 						stroke2canvas_strokeTexLocId;
 	GLuint 						stroke2canvas_canvasTexLocId;
 	bool						stroke2canvas_doIt;
+
+	// Call whenever the brush is lifted from canvas
+	void liftBush();
+
+	QPointF widget2canvasCoords(const QPointF& widgetPos);
 
 	GLuint loadShader(std::string path, GLenum shaderType);
 	GLuint linkShaderProgram(	GLuint vertShaderId, 
