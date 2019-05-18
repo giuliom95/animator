@@ -313,14 +313,8 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 		lastMouseY = curMouseY;
 	}
 
-	const auto widgetMousePos = event->pos();
-	const auto mouseOnCanvasX = invZoom*widgetMousePos.x() + cameraPanX;
-	const auto mouseOnCanvasY = invZoom*widgetMousePos.y() + cameraPanY;
-
 	if(brushDown) {
-		stroke_points.push_back((float)mouseOnCanvasX / canvasWidth);
-		stroke_points.push_back((float)mouseOnCanvasY / canvasHeight);
-		stroke_points.push_back(1.0f);
+		dragBrush(event->pos());
 	}
 }
 
@@ -342,11 +336,7 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 		liftBush();
 
 	if(brushDown) {
-		const auto widgetPos = event->posF();
-		const auto canvasPos = widget2canvasCoords(widgetPos);
-		stroke_points.push_back((float)canvasPos.x() / canvasWidth);
-		stroke_points.push_back((float)canvasPos.y() / canvasHeight);
-		stroke_points.push_back(pressure);
+		dragBrush(event->posF(), pressure);
 	}
 
 	// const auto btn = event->button();
@@ -359,6 +349,14 @@ void OGLWidget::liftBush() {
 	brushDown = false;
 	stroke2canvas_doIt = true;
 }
+
+void OGLWidget::dragBrush(const QPointF positionInWidget, const float pressure) {
+	const auto canvasPos = widget2canvasCoords(positionInWidget);
+	stroke_points.push_back((float)canvasPos.x() / canvasWidth);
+	stroke_points.push_back((float)canvasPos.y() / canvasHeight);
+	stroke_points.push_back(pressure);
+}
+
 
 QPointF OGLWidget::widget2canvasCoords(const QPointF& widgetPos) {
 	const auto invZoom = 1 / zoomFactor;

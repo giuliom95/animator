@@ -82,6 +82,7 @@ private:
 
 	// Call whenever the brush is lifted from canvas
 	void liftBush();
+	void dragBrush(const QPointF positionInWidget, const float pressure=1);
 
 	QPointF widget2canvasCoords(const QPointF& widgetPos);
 
