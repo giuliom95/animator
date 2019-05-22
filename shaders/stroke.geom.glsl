@@ -4,6 +4,7 @@ layout(lines) in;
 layout(triangle_strip, max_vertices = 8) out;
 
 uniform ivec2 canvasSize; 
+uniform int brushSize; 
 
 out vec2 uv;
 
@@ -18,7 +19,7 @@ void main() {
 	vec2 dn = dot(d, d) < 0.00001 ? vec2(1,0) : normalize(d);
 	vec2 td = vec2(dn.y, -dn.x);
 
-	float s = 10;
+	float s = brushSize;
 	float s0 = s * gl_in[0].gl_Position.z;
 	float s1 = s * gl_in[1].gl_Position.z;
 

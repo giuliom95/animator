@@ -29,7 +29,7 @@ public:
 	void transferStroke2Canvas();
 
 	void setZoom(float zoomFactor, float centerX, float centerY);
-	void switchBlur();
+	void setBrushSize(int newSize);
 
 protected:
 	void initializeGL();
@@ -47,6 +47,8 @@ private:
 	int							canvasWidth,		canvasHeight;
 	float						cameraPanX,			cameraPanY;
 	float						lastMouseX,			lastMouseY;
+
+	int							brushSize;
 
 	float zoomFactor;
 
@@ -67,6 +69,7 @@ private:
 	GLuint 						stroke_vtxBuf;
 	GLuint						stroke_progId;
 	GLuint						stroke_canvasSizeLocId;
+	GLuint						stroke_brushSizeLocId;
 	std::vector<GLfloat>		stroke_points;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;
@@ -74,7 +77,6 @@ private:
 	GLuint 						showCanvas_matrixLocId;
 	GLuint 						showCanvas_strokeTexLocId;
 	GLuint 						showCanvas_canvasTexLocId;
-	GLuint 						showCanvas_blurSwitchLocId;
 
 	QOpenGLVertexArrayObject	stroke2canvas_vao;
 	GLuint 						stroke2canvas_progId;

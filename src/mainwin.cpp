@@ -26,6 +26,7 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 
 	oglWidget = new OGLWidget(*zoomButton);
 	oglWidget->setMouseTracking(true);
+	oglWidget->setBrushSize(brushSizeSlider->value());
 
 	mainLayout->addWidget(oglWidget);
 	mainLayout->addWidget(bottomBarLayoutContainer);
@@ -42,5 +43,5 @@ void AnimatorMainWindow::handleZoomButton() {
 }
 
 void AnimatorMainWindow::handleBrushSizeSlider() {
-	std::cout << brushSizeSlider->value() << std::endl;
+	oglWidget->setBrushSize(brushSizeSlider->value());
 }

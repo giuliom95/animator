@@ -54,6 +54,10 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 	zoomButton.setText(stream.str().c_str());
 }
 
+void OGLWidget::setBrushSize(int newSize) {
+	brushSize = newSize;
+	std::cout << brushSize << std::endl;
+}
 
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
@@ -84,7 +88,6 @@ void OGLWidget::initializeGL() {
 	showCanvas_matrixLocId		= glGetUniformLocation(showCanvas_progId, "view");
 	showCanvas_strokeTexLocId 	= glGetUniformLocation(showCanvas_progId, "stroke");
 	showCanvas_canvasTexLocId 	= glGetUniformLocation(showCanvas_progId, "canvas");
-	showCanvas_blurSwitchLocId	= glGetUniformLocation(showCanvas_progId, "blur");
 
 	////////////////////////////////////////////
 	// Shader program for stroke manipulation //
@@ -98,6 +101,7 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke_geomShadId);
 
 	stroke_canvasSizeLocId = glGetUniformLocation(stroke_progId, "canvasSize");
+	stroke_brushSizeLocId = glGetUniformLocation(stroke_progId, "brushSize");
 
 	//////////////////////////////////////////////////
 	// Shader program for stroke to canvas transfer //
@@ -204,6 +208,7 @@ void OGLWidget::strokeManagement() {
 	glDrawBuffers(1, buf);
 
 	glUniform2i(stroke_canvasSizeLocId, canvasWidth, canvasHeight);
+	glUniform1i(stroke_brushSizeLocId, brushSize);
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
