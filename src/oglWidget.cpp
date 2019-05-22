@@ -301,7 +301,7 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 
-	if(mouseButtonsPressed[2]) {
+	if(mouseButtonsPressed[1]) {
 		pan(event->screenPos());
 	}
 
@@ -319,6 +319,13 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 }
 
 void OGLWidget::tabletEvent(QTabletEvent* event) {
+	const auto btn = event->button();
+	if(btn == 4)
+		panning = !panning;
+
+	if(panning) {
+		pan(event->globalPosF());
+	}
 	
 	const auto pressure = event->pressure();
 	if(pressure > 0.0001 && !brushDown)
@@ -327,9 +334,8 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 	if(pressure < 0.0001 && brushDown)
 		liftBush();
 
-	if(brushDown) {
-		dragBrush(event->posF(), pressure);
-	}
+	if(brushDown)
+		dragBrush(event->pos(), pressure);
 
 }
 
@@ -337,7 +343,7 @@ void OGLWidget::pan(const QPointF cursorPosOnScreen) {
 	const auto invZoom = 1 / zoomFactor;
 	const auto x = cursorPosOnScreen.x();
 	const auto y = cursorPosOnScreen.y(); 
-
+	
 	cameraPanX -= invZoom*(x - lastMouseX);
 	cameraPanY -= invZoom*(y - lastMouseY);
 	lastMouseX = x;
