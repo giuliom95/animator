@@ -3,8 +3,7 @@
 in vec3 point;
 
 void main() {
-	gl_Position.xy = 2 * point.xy - 1;
-	// Pressure
-	gl_Position.z = point.z;
+	// z contains brush pressure
+	gl_Position.xyz = point;
 	gl_Position.w = 1.0f;
 }

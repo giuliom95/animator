@@ -70,7 +70,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(720, 720);
+	newCanvas(1720, 720);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -87,7 +87,7 @@ void OGLWidget::initializeGL() {
 	showCanvas_blurSwitchLocId	= glGetUniformLocation(showCanvas_progId, "blur");
 
 	////////////////////////////////////////////
-	// Shader program for canvas manipulation //
+	// Shader program for stroke manipulation //
 	////////////////////////////////////////////
 	const auto stroke_vertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
 	const auto stroke_fragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
@@ -96,6 +96,8 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke_vertShadId);
 	glDeleteShader(stroke_fragShadId);
 	glDeleteShader(stroke_geomShadId);
+
+	stroke_canvasSizeLocId = glGetUniformLocation(stroke_progId, "canvasSize");
 
 	//////////////////////////////////////////////////
 	// Shader program for stroke to canvas transfer //
@@ -200,6 +202,8 @@ void OGLWidget::strokeManagement() {
 
 	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
+
+	glUniform2i(stroke_canvasSizeLocId, canvasWidth, canvasHeight);
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -358,8 +362,8 @@ void OGLWidget::liftBush() {
 
 void OGLWidget::dragBrush(const QPointF cursorPosOnWidget, const float pressure) {
 	const auto canvasPos = widget2canvasCoords(cursorPosOnWidget);
-	stroke_points.push_back((float)canvasPos.x() / canvasWidth);
-	stroke_points.push_back((float)canvasPos.y() / canvasHeight);
+	stroke_points.push_back(canvasPos.x());
+	stroke_points.push_back(canvasPos.y());
 	stroke_points.push_back(pressure);
 }
 
