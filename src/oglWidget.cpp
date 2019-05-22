@@ -6,6 +6,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												zoomFactor{1},
 												mouseButtonsPressed{false, false, false},
 												brushDown{false},
+												panning{false},
 												zoomButton(zoomButton),
 												showCanvas_vao{},
 												stroke_vao{},
@@ -299,18 +300,9 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
-	const auto invZoom = 1 / zoomFactor;
-
-	const auto mousePos = event->screenPos();
 
 	if(mouseButtonsPressed[2]) {
-		const int curMouseX = mousePos.x();
-		const int curMouseY = mousePos.y(); 
-
-		cameraPanX -= invZoom*(curMouseX - lastMouseX);
-		cameraPanY -= invZoom*(curMouseY - lastMouseY);
-		lastMouseX = curMouseX;
-		lastMouseY = curMouseY;
+		pan(event->screenPos());
 	}
 
 	if(brushDown) {
@@ -327,7 +319,7 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 }
 
 void OGLWidget::tabletEvent(QTabletEvent* event) {
-
+	
 	const auto pressure = event->pressure();
 	if(pressure > 0.0001 && !brushDown)
 		brushDown = true;
@@ -339,9 +331,17 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 		dragBrush(event->posF(), pressure);
 	}
 
-	// const auto btn = event->button();
-	// if(btn != 0)
-	// 	std::cout << btn << std::endl;
+}
+
+void OGLWidget::pan(const QPointF cursorPosOnScreen) {
+	const auto invZoom = 1 / zoomFactor;
+	const auto x = cursorPosOnScreen.x();
+	const auto y = cursorPosOnScreen.y(); 
+
+	cameraPanX -= invZoom*(x - lastMouseX);
+	cameraPanY -= invZoom*(y - lastMouseY);
+	lastMouseX = x;
+	lastMouseY = y;
 }
 
 void OGLWidget::liftBush() {
@@ -350,8 +350,8 @@ void OGLWidget::liftBush() {
 	stroke2canvas_doIt = true;
 }
 
-void OGLWidget::dragBrush(const QPointF positionInWidget, const float pressure) {
-	const auto canvasPos = widget2canvasCoords(positionInWidget);
+void OGLWidget::dragBrush(const QPointF cursorPosOnWidget, const float pressure) {
+	const auto canvasPos = widget2canvasCoords(cursorPosOnWidget);
 	stroke_points.push_back((float)canvasPos.x() / canvasWidth);
 	stroke_points.push_back((float)canvasPos.y() / canvasHeight);
 	stroke_points.push_back(pressure);

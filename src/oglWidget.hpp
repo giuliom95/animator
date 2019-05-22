@@ -54,6 +54,7 @@ private:
 
 	std::array<bool, 3> 		mouseButtonsPressed;
 	bool						brushDown;
+	bool						panning;
 
 	QPushButton& 				zoomButton;
 
@@ -80,9 +81,12 @@ private:
 	GLuint 						stroke2canvas_canvasTexLocId;
 	bool						stroke2canvas_doIt;
 
-	// Call whenever the brush is lifted from canvas
+	void pan(const QPointF cursorPosOnScreen);
+
+	// Brush is lifted from canvas
 	void liftBush();
-	void dragBrush(const QPointF positionInWidget, const float pressure=1);
+	// Brush dragged on canvas
+	void dragBrush(const QPointF cursorPosOnWidget, const float pressure=1);
 
 	QPointF widget2canvasCoords(const QPointF& widgetPos);
 
