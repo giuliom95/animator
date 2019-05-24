@@ -4,6 +4,7 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												cameraPanX{0},
 												cameraPanY{0},
 												zoomFactor{1},
+												lastCursorPos{},
 												mouseButtonsPressed{false, false, false},
 												brushDown{false},
 												panning{false},
@@ -56,7 +57,6 @@ void OGLWidget::setZoom(float zf, float x, float y) {
 
 void OGLWidget::setBrushSize(int newSize) {
 	brushSize = newSize;
-	std::cout << brushSize << std::endl;
 }
 
 void OGLWidget::initializeGL() {
@@ -289,8 +289,8 @@ void OGLWidget::paintGL() {
 void OGLWidget::mousePressEvent(QMouseEvent* event) {
 
 	const auto mouseScreenPos = event->screenPos();
-	lastMouseX = (int)mouseScreenPos.x();
-	lastMouseY = (int)mouseScreenPos.y();
+	lastCursorPos.setX(mouseScreenPos.x());
+	lastCursorPos.setY(mouseScreenPos.y());
 
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
 
@@ -310,7 +310,7 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 
-	if(mouseButtonsPressed[1]) {
+	if(mouseButtonsPressed[2]) {
 		pan(event->screenPos());
 	}
 
@@ -329,11 +329,17 @@ void OGLWidget::wheelEvent(QWheelEvent *event) {
 
 void OGLWidget::tabletEvent(QTabletEvent* event) {
 	const auto btn = event->button();
-	if(btn == 4)
+	const auto screenPos = event->globalPosF();
+	if(btn == Qt::MiddleButton) {
 		panning = !panning;
-
+		if(panning) {
+			lastCursorPos.setX(screenPos.x());
+			lastCursorPos.setY(screenPos.y());
+		}
+	}
+		
 	if(panning) {
-		pan(event->globalPosF());
+		pan(screenPos);
 	}
 	
 	const auto pressure = event->pressure();
@@ -351,12 +357,12 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 void OGLWidget::pan(const QPointF cursorPosOnScreen) {
 	const auto invZoom = 1 / zoomFactor;
 	const auto x = cursorPosOnScreen.x();
-	const auto y = cursorPosOnScreen.y(); 
+	const auto y = cursorPosOnScreen.y();
 	
-	cameraPanX -= invZoom*(x - lastMouseX);
-	cameraPanY -= invZoom*(y - lastMouseY);
-	lastMouseX = x;
-	lastMouseY = y;
+	cameraPanX -= invZoom*(x - lastCursorPos.x());
+	cameraPanY -= invZoom*(y - lastCursorPos.y());
+	lastCursorPos.setX(x);
+	lastCursorPos.setY(y);
 }
 
 void OGLWidget::liftBush() {

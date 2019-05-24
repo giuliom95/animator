@@ -46,11 +46,11 @@ private:
 	int							widgetWidth,		widgetHeight;
 	int							canvasWidth,		canvasHeight;
 	float						cameraPanX,			cameraPanY;
-	float						lastMouseX,			lastMouseY;
+	QPointF						lastCursorPos;
 
 	int							brushSize;
 
-	float zoomFactor;
+	float 						zoomFactor;
 
 	QTime 						time;
 
