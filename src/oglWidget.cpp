@@ -95,13 +95,18 @@ void OGLWidget::initializeGL() {
 	const auto stroke_vertShadId = loadShader("shaders/stroke.vert.glsl", GL_VERTEX_SHADER);
 	const auto stroke_fragShadId = loadShader("shaders/stroke.frag.glsl", GL_FRAGMENT_SHADER);
 	const auto stroke_geomShadId = loadShader("shaders/stroke.geom.glsl", GL_GEOMETRY_SHADER);
-	stroke_progId = linkShaderProgram(stroke_vertShadId, stroke_fragShadId, stroke_geomShadId);
+	const auto stroke_teseShadId  = loadShader("shaders/stroke.tese.glsl", GL_TESS_EVALUATION_SHADER);
+	stroke_progId = linkShaderProgram(stroke_vertShadId, stroke_fragShadId, stroke_geomShadId, stroke_teseShadId);
 	glDeleteShader(stroke_vertShadId);
 	glDeleteShader(stroke_fragShadId);
 	glDeleteShader(stroke_geomShadId);
+	glDeleteShader(stroke_teseShadId);
 
 	stroke_canvasSizeLocId = glGetUniformLocation(stroke_progId, "canvasSize");
 	stroke_brushSizeLocId = glGetUniformLocation(stroke_progId, "brushSize");
+	glPatchParameteri(GL_PATCH_VERTICES, 2);
+	const GLfloat outer_tess_lvl[] = {1, 16};
+	glPatchParameterfv(GL_PATCH_DEFAULT_OUTER_LEVEL, outer_tess_lvl);
 
 	//////////////////////////////////////////////////
 	// Shader program for stroke to canvas transfer //
@@ -183,6 +188,7 @@ void OGLWidget::initializeGL() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, canvasTexId, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	//testDraw();
 }
 
 void OGLWidget::resizeGL(int w, int h) {
@@ -198,7 +204,7 @@ void OGLWidget::strokeManagement() {
 	stroke_vao.bind();
 	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(0);
 
 	glViewport(0, 0, canvasWidth, canvasHeight);
@@ -212,7 +218,7 @@ void OGLWidget::strokeManagement() {
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawArrays(GL_LINE_STRIP, 0, stroke_points.size()/3);
+	glDrawArrays(GL_PATCHES, 0, stroke_points.size()/4 - 1);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBlendEquation(GL_FUNC_ADD);
@@ -296,8 +302,8 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 
 	if(mouseButtonsPressed[0]) {
 		brushDown = true;
-		mouseMoveEvent(event);
-		mouseMoveEvent(event);
+		dragBrush(event->pos());
+		dragBrush(event->pos());
 	}
 }
 
@@ -305,7 +311,10 @@ void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
 	
-	liftBush();
+	if(brushDown) {
+		dragBrush(event->pos());
+		liftBush();
+	}
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
@@ -373,9 +382,40 @@ void OGLWidget::liftBush() {
 
 void OGLWidget::dragBrush(const QPointF cursorPosOnWidget, const float pressure) {
 	const auto canvasPos = widget2canvasCoords(cursorPosOnWidget);
-	stroke_points.push_back(canvasPos.x());
-	stroke_points.push_back(canvasPos.y());
-	stroke_points.push_back(pressure);
+
+	// Compute the tangent on the previous point
+	const auto n = stroke_points.size();
+	auto angle = 0.0f;
+	if(n > 0) {
+		const QPointF p{stroke_points[n - 4], stroke_points[n - 3]};
+		const auto d = canvasPos - p;
+		angle = atan2(d.y(), d.x());
+
+		if(n == 4) {
+			stroke_points[n-1] = angle;
+		}
+
+		if(n > 4) {
+			const auto oldAngle = stroke_points[n-1];
+			const auto d0 = Utils::normalize({cos(oldAngle), sin(oldAngle)});
+			const auto d1 = Utils::normalize(d);
+			const auto middle = Utils::normalize(d0 + d1);
+			const auto newAngle = atan2(middle.y(), middle.x());
+			stroke_points[n-1] = newAngle;
+			stroke_points[n-5] = newAngle;
+		}
+	}
+
+	// Do it twice because tesselation patches
+	const auto ul = n > 0 ? 2 : 1;
+	for(int i = 0; i < ul; ++i) {
+		stroke_points.push_back(canvasPos.x());
+		stroke_points.push_back(canvasPos.y());
+		stroke_points.push_back(pressure);
+		stroke_points.push_back(angle);
+	}
+
+	
 }
 
 
@@ -418,12 +458,14 @@ GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 
 GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId, 
 									GLuint fragShaderId, 
-									GLuint geomShaderId) {
+									GLuint geomShaderId,
+									GLuint teseShaderId) {
 	// Link the program
 	const GLuint progId = glCreateProgram();
 	glAttachShader(progId, vertShaderId);
 	glAttachShader(progId, fragShaderId);
 	if(geomShaderId != 0) glAttachShader(progId, geomShaderId);
+	if(teseShaderId != 0)  glAttachShader(progId, teseShaderId);
 	glLinkProgram(progId);
 
 	// Check the program
@@ -441,4 +483,18 @@ GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId,
 	glDetachShader(progId, fragShaderId);
 
 	return progId;
+}
+
+
+void OGLWidget::testDraw() {
+	dragBrush({1000, 500}, 1);
+	dragBrush({ 900, 500}, .5);
+	dragBrush({ 800, 500}, .75);
+	dragBrush({ 700, 500}, 1);
+	dragBrush({ 600, 500}, .75);
+	dragBrush({ 500, 500}, .5);
+	dragBrush({ 400, 500}, .75);
+	dragBrush({ 300, 500}, .75);
+	dragBrush({ 200, 500}, .75);
+	//liftBush();
 }

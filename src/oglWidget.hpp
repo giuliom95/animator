@@ -96,7 +96,10 @@ private:
 	GLuint loadShader(std::string path, GLenum shaderType);
 	GLuint linkShaderProgram(	GLuint vertShaderId, 
 								GLuint fragShaderId,
-								GLuint geomShaderId = 0);
+								GLuint geomShaderId = 0,
+								GLuint teseShaderId = 0);
+
+	void testDraw();
 };
 
 #endif
