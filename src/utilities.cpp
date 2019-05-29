@@ -13,8 +13,12 @@ const int Utils::mapQtMouseBtn(const Qt::MouseButton btn) {
 	}
 }
 
-const QPointF	Utils::normalize(const QPointF v) {
+const float		Utils::length(const QPointF v) {
 	const auto dot = QPointF::dotProduct(v, v);
-	const auto invlen = 1 / sqrt(dot);
+	return sqrt(dot);
+}
+
+const QPointF	Utils::normalize(const QPointF v) {
+	const auto invlen = 1 / length(v);
 	return invlen * v;
 }

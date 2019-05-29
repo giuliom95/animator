@@ -12,6 +12,8 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												showCanvas_vao{},
 												stroke_vao{},
 												stroke_points{},
+												stroke_points_indices{},
+												stroke_current_index{0},
 												stroke2canvas_doIt{true} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
@@ -74,7 +76,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(1720, 720);
+	newCanvas(1920, 1080);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -188,7 +190,7 @@ void OGLWidget::initializeGL() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, canvasTexId, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	//testDraw();
+	testDraw();
 }
 
 void OGLWidget::resizeGL(int w, int h) {
@@ -218,7 +220,7 @@ void OGLWidget::strokeManagement() {
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawArrays(GL_PATCHES, 0, stroke_points.size()/4 - 1);
+	glDrawElements(GL_PATCHES, 2*stroke_current_index - 1, GL_UNSIGNED_INT, stroke_points_indices.data());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBlendEquation(GL_FUNC_ADD);
@@ -358,8 +360,12 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 	if(pressure < 0.0001 && brushDown)
 		liftBush();
 
-	if(brushDown)
-		dragBrush(event->pos(), pressure);
+	if(brushDown) {
+		const QPointF p{event->hiResGlobalX(), event->hiResGlobalY()};
+		const auto windowPos = mapToGlobal({0,0});
+		const QPointF widgetPos = p - windowPos;
+		dragBrush(widgetPos, pressure);
+	}
 
 }
 
@@ -376,6 +382,8 @@ void OGLWidget::pan(const QPointF cursorPosOnScreen) {
 
 void OGLWidget::liftBush() {
 	stroke_points.clear();
+	stroke_points_indices.clear();
+	stroke_current_index = 0;
 	brushDown = false;
 	stroke2canvas_doIt = true;
 }
@@ -389,6 +397,7 @@ void OGLWidget::dragBrush(const QPointF cursorPosOnWidget, const float pressure)
 	if(n > 0) {
 		const QPointF p{stroke_points[n - 4], stroke_points[n - 3]};
 		const auto d = canvasPos - p;
+		if(Utils::length(d) < 2) return;
 		angle = atan2(d.y(), d.x());
 
 		if(n == 4) {
@@ -396,26 +405,26 @@ void OGLWidget::dragBrush(const QPointF cursorPosOnWidget, const float pressure)
 		}
 
 		if(n > 4) {
-			const auto oldAngle = stroke_points[n-1];
-			const auto d0 = Utils::normalize({cos(oldAngle), sin(oldAngle)});
+			const QPointF pOld{stroke_points[n - 8], stroke_points[n - 7]};
+			const auto d0 = Utils::normalize(p - pOld);
 			const auto d1 = Utils::normalize(d);
 			const auto middle = Utils::normalize(d0 + d1);
 			const auto newAngle = atan2(middle.y(), middle.x());
 			stroke_points[n-1] = newAngle;
-			stroke_points[n-5] = newAngle;
 		}
+
+		if(!std::isfinite(stroke_points[n-1]))
+			std::cout << "CRONK" << std::endl;
 	}
 
-	// Do it twice because tesselation patches
-	const auto ul = n > 0 ? 2 : 1;
-	for(int i = 0; i < ul; ++i) {
-		stroke_points.push_back(canvasPos.x());
-		stroke_points.push_back(canvasPos.y());
-		stroke_points.push_back(pressure);
-		stroke_points.push_back(angle);
-	}
+	stroke_points.push_back(canvasPos.x());
+	stroke_points.push_back(canvasPos.y());
+	stroke_points.push_back(pressure);
+	stroke_points.push_back(angle);
 
-	
+	stroke_points_indices.push_back(stroke_current_index);
+	++stroke_current_index;
+	stroke_points_indices.push_back(stroke_current_index);
 }
 
 
@@ -487,14 +496,21 @@ GLuint OGLWidget::linkShaderProgram(GLuint vertShaderId,
 
 
 void OGLWidget::testDraw() {
-	dragBrush({1000, 500}, 1);
-	dragBrush({ 900, 500}, .5);
-	dragBrush({ 800, 500}, .75);
-	dragBrush({ 700, 500}, 1);
-	dragBrush({ 600, 500}, .75);
-	dragBrush({ 500, 500}, .5);
-	dragBrush({ 400, 500}, .75);
-	dragBrush({ 300, 500}, .75);
-	dragBrush({ 200, 500}, .75);
+	// dragBrush({1000, 500}, 1);
+	// dragBrush({ 900, 500}, .5);
+	// dragBrush({ 800, 500}, .75);
+	// dragBrush({ 700, 500}, 1);
+	// dragBrush({ 600, 500}, .75);
+	// dragBrush({ 500, 500}, .5);
+	// dragBrush({ 400, 500}, .75);
+	// dragBrush({ 300, 500}, .75);
+	// dragBrush({ 200, 500}, .75);
+	dragBrush({100, 100}, 1);
+	dragBrush({200, 100}, .5);
+	dragBrush({200, 200}, .75);
+	dragBrush({100, 200}, 1);
+	dragBrush({150, 250}, .75);
+	dragBrush({100, 250}, .5);
+	dragBrush({100, 150}, .75);
 	//liftBush();
 }

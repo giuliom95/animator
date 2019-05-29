@@ -71,6 +71,8 @@ private:
 	GLuint						stroke_canvasSizeLocId;
 	GLuint						stroke_brushSizeLocId;
 	std::vector<GLfloat>		stroke_points;
+	std::vector<GLuint>			stroke_points_indices;
+	int							stroke_current_index;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;
 	GLuint 						showCanvas_progId;
