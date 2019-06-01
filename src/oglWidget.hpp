@@ -48,6 +48,10 @@ private:
 	float						cameraPanX,			cameraPanY;
 	QPointF						lastCursorPos;
 
+	int							currentFrame;
+	int							currentFrameLayerIndex;
+	int							skinLevels;
+
 	int							brushSize;
 
 	float 						zoomFactor;
@@ -60,13 +64,13 @@ private:
 
 	QPushButton& 				zoomButton;
 
-	GLuint						canvasTexId;
+	GLuint						canvasesTexId;
 	GLuint						strokeTexId;
 
 	GLuint						fboId;
 
 	QOpenGLVertexArrayObject	stroke_vao;
-	GLuint 						stroke_vtxBuf;
+	GLuint						stroke_vtxBuf;
 	GLuint						stroke_progId;
 	GLuint						stroke_canvasSizeLocId;
 	GLuint						stroke_brushSizeLocId;
@@ -75,15 +79,17 @@ private:
 	int							stroke_current_index;
 
 	QOpenGLVertexArrayObject	showCanvas_vao;
-	GLuint 						showCanvas_progId;
-	GLuint 						showCanvas_matrixLocId;
-	GLuint 						showCanvas_strokeTexLocId;
-	GLuint 						showCanvas_canvasTexLocId;
+	GLuint						showCanvas_progId;
+	GLuint						showCanvas_matrixLocId;
+	GLuint						showCanvas_strokeTexLocId;
+	GLuint						showCanvas_canvasTexLocId;
+	GLuint						showCanvas_currentFrameLayerIndexLocId;
 
 	QOpenGLVertexArrayObject	stroke2canvas_vao;
-	GLuint 						stroke2canvas_progId;
-	GLuint 						stroke2canvas_strokeTexLocId;
-	GLuint 						stroke2canvas_canvasTexLocId;
+	GLuint						stroke2canvas_progId;
+	GLuint						stroke2canvas_strokeTexLocId;
+	GLuint						stroke2canvas_canvasTexLocId;
+	GLuint						stroke2canvas_currentFrameLayerIndexLocId;
 	bool						stroke2canvas_doIt;
 
 	void pan(const QPointF cursorPosOnScreen);

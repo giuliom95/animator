@@ -3,6 +3,9 @@
 OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												cameraPanX{0},
 												cameraPanY{0},
+												currentFrame{0},
+												currentFrameLayerIndex{0},
+												skinLevels{3},
 												zoomFactor{1},
 												lastCursorPos{},
 												mouseButtonsPressed{false, false, false},
@@ -31,12 +34,16 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	canvasHeight = h;
 
 	const auto clearCanv = std::vector<GLubyte>(w*h*3, 255);
-	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, canvasWidth, canvasHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
+	const auto levels = 2*skinLevels + 1;
+	// Allocate
+	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGB8, w, h, levels);
+	for(int i = 0; i < levels; i++)
+		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, w, h, 1, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
 
 	const auto clearAlpha = std::vector<GLubyte>(w*h, 0);
 	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, canvasWidth, canvasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
 }
 
 
@@ -66,10 +73,10 @@ void OGLWidget::initializeGL() {
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 
-	glGenTextures(1, &canvasTexId);
-	glBindTexture(GL_TEXTURE_2D, canvasTexId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glGenTextures(1, &canvasesTexId);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glGenTextures(1, &strokeTexId);
 	glBindTexture(GL_TEXTURE_2D, strokeTexId);
@@ -87,9 +94,10 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(showCanvas_vertShadId);
 	glDeleteShader(showCanvas_fragShadId);
 
-	showCanvas_matrixLocId		= glGetUniformLocation(showCanvas_progId, "view");
-	showCanvas_strokeTexLocId 	= glGetUniformLocation(showCanvas_progId, "stroke");
-	showCanvas_canvasTexLocId 	= glGetUniformLocation(showCanvas_progId, "canvas");
+	showCanvas_matrixLocId					= glGetUniformLocation(showCanvas_progId, "view");
+	showCanvas_strokeTexLocId				= glGetUniformLocation(showCanvas_progId, "stroke");
+	showCanvas_canvasTexLocId				= glGetUniformLocation(showCanvas_progId, "canvas");
+	showCanvas_currentFrameLayerIndexLocId	= glGetUniformLocation(showCanvas_progId, "currentFrameLayerIndex");
 
 	////////////////////////////////////////////
 	// Shader program for stroke manipulation //
@@ -119,8 +127,9 @@ void OGLWidget::initializeGL() {
 	glDeleteShader(stroke2canvas_vertShadId);
 	glDeleteShader(stroke2canvas_fragShadId);
 
-	stroke2canvas_strokeTexLocId 	= glGetUniformLocation(stroke2canvas_progId, "stroke");
-	stroke2canvas_canvasTexLocId 	= glGetUniformLocation(stroke2canvas_progId, "canvas");
+	stroke2canvas_strokeTexLocId				= glGetUniformLocation(stroke2canvas_progId, "stroke");
+	stroke2canvas_canvasTexLocId				= glGetUniformLocation(stroke2canvas_progId, "canvas");
+	stroke2canvas_currentFrameLayerIndexLocId	= glGetUniformLocation(stroke2canvas_progId, "currentFrameLayerIndex");
 
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
@@ -187,7 +196,7 @@ void OGLWidget::initializeGL() {
 	glGenFramebuffers(1, &fboId);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, strokeTexId, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, canvasTexId, 0);
+	glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_ARRAY, canvasesTexId, 0, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//testDraw();
@@ -243,8 +252,10 @@ void OGLWidget::transferStroke2Canvas() {
 	glUniform1i(stroke2canvas_strokeTexLocId, 0);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, canvasTexId);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
 	glUniform1i(stroke2canvas_canvasTexLocId, 1);
+
+	glUniform1i(stroke2canvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -285,8 +296,10 @@ void OGLWidget::paintGL() {
 	glUniform1i(showCanvas_strokeTexLocId, 0);
 
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, canvasTexId);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
 	glUniform1i(showCanvas_canvasTexLocId, 1);
+
+	glUniform1i(showCanvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
