@@ -190,7 +190,7 @@ void OGLWidget::initializeGL() {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, canvasTexId, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	testDraw();
+	//testDraw();
 }
 
 void OGLWidget::resizeGL(int w, int h) {

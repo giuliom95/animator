@@ -13,11 +13,10 @@ public:
 
 public slots:
 	void handleZoomButton();
-	void handleBrushSizeSlider();
+	void handleBrushSizeWidget(int value);
 
 private:
 	QPushButton*	zoomButton;
-	QSlider*		brushSizeSlider;
 	OGLWidget*		oglWidget;
 };
 

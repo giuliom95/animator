@@ -14,26 +14,28 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	bottomBarLayout->setContentsMargins(0,0,5,0);
 	zoomButton = new QPushButton("100.0%");
 	zoomButton->setFixedWidth(70);
-	brushSizeSlider = new QSlider(Qt::Orientation::Horizontal);
-	brushSizeSlider->setMinimum(0);
-	brushSizeSlider->setMaximum(100);
-	brushSizeSlider->setValue(10);
+
+	auto* brushSizeWidget = new QSpinBox();
+	brushSizeWidget->setMinimum(1);
+	brushSizeWidget->setMaximum(500);
+	brushSizeWidget->setPrefix("Brush size: ");
+	brushSizeWidget->setValue(10);
 
 	bottomBarLayout->addWidget(zoomButton);
-	bottomBarLayout->addWidget(brushSizeSlider);
+	bottomBarLayout->addWidget(brushSizeWidget);
 	bottomBarLayout->addStretch();
 	bottomBarLayoutContainer->setLayout(bottomBarLayout);
 
 	oglWidget = new OGLWidget(*zoomButton);
 	oglWidget->setMouseTracking(true);
-	oglWidget->setBrushSize(brushSizeSlider->value());
+	oglWidget->setBrushSize(brushSizeWidget->value());
 
 	mainLayout->addWidget(oglWidget);
 	mainLayout->addWidget(bottomBarLayoutContainer);
 	setLayout(mainLayout);
 
 	connect(zoomButton,			SIGNAL (clicked()),					this, SLOT (handleZoomButton()));	
-	connect(brushSizeSlider,	SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeSlider()));
+	connect(brushSizeWidget,	SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeWidget(int)));
 }
 
 void AnimatorMainWindow::handleZoomButton() {
@@ -42,6 +44,6 @@ void AnimatorMainWindow::handleZoomButton() {
 	oglWidget->setZoom(1.0f, cx, cy);
 }
 
-void AnimatorMainWindow::handleBrushSizeSlider() {
-	oglWidget->setBrushSize(brushSizeSlider->value());
+void AnimatorMainWindow::handleBrushSizeWidget(int value) {
+	oglWidget->setBrushSize(value);
 }
