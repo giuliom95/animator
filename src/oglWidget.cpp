@@ -3,7 +3,7 @@
 OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												cameraPanX{0},
 												cameraPanY{0},
-												currentFrame{0},
+												currentFrame{1},
 												currentFrameLayerIndex{0},
 												skinLevels{3},
 												zoomFactor{1},
@@ -46,6 +46,10 @@ void OGLWidget::newCanvas(const int w, const int h) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, clearAlpha.data());
 }
 
+void OGLWidget::setFrame(int newFrame) {
+	currentFrame = newFrame;
+	currentFrameLayerIndex = newFrame - 1;
+}
 
 void OGLWidget::setZoom(float zf, float x, float y) {
 	cameraPanX += x / zoomFactor;
@@ -206,65 +210,6 @@ void OGLWidget::resizeGL(int w, int h) {
 	widgetWidth = w;
 	widgetHeight = h;
 }
-
-void OGLWidget::strokeManagement() {
-
-	glBlendEquation(GL_MAX);
-	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
-
-	stroke_vao.bind();
-	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(0);
-
-	glViewport(0, 0, canvasWidth, canvasHeight);
-	glUseProgram(stroke_progId);
-
-	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
-	glDrawBuffers(1, buf);
-
-	glUniform2i(stroke_canvasSizeLocId, canvasWidth, canvasHeight);
-	glUniform1i(stroke_brushSizeLocId, brushSize);
-
-	glClearColor(0,0,0,1);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawElements(GL_PATCHES, 2*stroke_current_index - 1, GL_UNSIGNED_INT, stroke_points_indices.data());
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glBlendEquation(GL_FUNC_ADD);
-}
-
-void OGLWidget::transferStroke2Canvas() {
-
-	glDisable(GL_BLEND);
-	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
-
-	stroke2canvas_vao.bind();
-	glViewport(0, 0, canvasWidth, canvasHeight);
-	glUseProgram(stroke2canvas_progId);
-
-	const GLenum buf[] = {GL_COLOR_ATTACHMENT1};
-	glDrawBuffers(1, buf);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, strokeTexId);
-	glUniform1i(stroke2canvas_strokeTexLocId, 0);
-
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
-	glUniform1i(stroke2canvas_canvasTexLocId, 1);
-
-	glUniform1i(stroke2canvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	stroke2canvas_doIt = false;
-	glEnable(GL_BLEND);
-}
-
 
 void OGLWidget::paintGL() {
 
@@ -449,6 +394,63 @@ QPointF OGLWidget::widget2canvasCoords(const QPointF& widgetPos) {
 	};
 }
 
+void OGLWidget::strokeManagement() {
+
+	glBlendEquation(GL_MAX);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+	stroke_vao.bind();
+	glBindBuffer(GL_ARRAY_BUFFER, stroke_vtxBuf);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*stroke_points.size(), stroke_points.data(), GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(0);
+
+	glViewport(0, 0, canvasWidth, canvasHeight);
+	glUseProgram(stroke_progId);
+
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, buf);
+
+	glUniform2i(stroke_canvasSizeLocId, canvasWidth, canvasHeight);
+	glUniform1i(stroke_brushSizeLocId, brushSize);
+
+	glClearColor(0,0,0,1);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawElements(GL_PATCHES, 2*stroke_current_index - 1, GL_UNSIGNED_INT, stroke_points_indices.data());
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBlendEquation(GL_FUNC_ADD);
+}
+
+void OGLWidget::transferStroke2Canvas() {
+
+	glDisable(GL_BLEND);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+	stroke2canvas_vao.bind();
+	glViewport(0, 0, canvasWidth, canvasHeight);
+	glUseProgram(stroke2canvas_progId);
+
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(1, buf);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, strokeTexId);
+	glUniform1i(stroke2canvas_strokeTexLocId, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
+	glUniform1i(stroke2canvas_canvasTexLocId, 1);
+
+	glUniform1i(stroke2canvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	stroke2canvas_doIt = false;
+	glEnable(GL_BLEND);
+}
 
 GLuint OGLWidget::loadShader(std::string path, GLenum shaderType) {
 	// Create shader

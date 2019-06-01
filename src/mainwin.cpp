@@ -56,5 +56,5 @@ void AnimatorMainWindow::handleBrushSizeWidget(int value) {
 }
 
 void AnimatorMainWindow::handleFrameChange(int frame) {
-	
+	oglWidget->setFrame(frame);
 }

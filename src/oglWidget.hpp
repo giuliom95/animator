@@ -25,9 +25,8 @@ public:
 	OGLWidget(QPushButton& zoomButton);
 
 	void newCanvas(const int canvasWidth, const int imageHeight);
-	void strokeManagement();
-	void transferStroke2Canvas();
 
+	void setFrame(int newFrame);
 	void setZoom(float zoomFactor, float centerX, float centerY);
 	void setBrushSize(int newSize);
 
@@ -100,6 +99,9 @@ private:
 	void dragBrush(const QPointF cursorPosOnWidget, const float pressure=1);
 
 	QPointF widget2canvasCoords(const QPointF& widgetPos);
+
+	void strokeManagement();
+	void transferStroke2Canvas();
 
 	GLuint loadShader(std::string path, GLenum shaderType);
 	GLuint linkShaderProgram(	GLuint vertShaderId, 
