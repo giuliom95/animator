@@ -15,15 +15,21 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	zoomButton = new QPushButton("100.0%");
 	zoomButton->setFixedWidth(70);
 
+	auto* frameSelectorWidget = new QSpinBox();
+	frameSelectorWidget->setMinimum(1);
+	frameSelectorWidget->setMaximum(100);
+	frameSelectorWidget->setPrefix("Frame: ");
+
 	auto* brushSizeWidget = new QSpinBox();
 	brushSizeWidget->setMinimum(1);
 	brushSizeWidget->setMaximum(500);
 	brushSizeWidget->setPrefix("Brush size: ");
 	brushSizeWidget->setValue(10);
 
-	bottomBarLayout->addWidget(zoomButton);
-	bottomBarLayout->addWidget(brushSizeWidget);
+	bottomBarLayout->addWidget(frameSelectorWidget);
 	bottomBarLayout->addStretch();
+	bottomBarLayout->addWidget(brushSizeWidget);
+	bottomBarLayout->addWidget(zoomButton);
 	bottomBarLayoutContainer->setLayout(bottomBarLayout);
 
 	oglWidget = new OGLWidget(*zoomButton);
@@ -34,8 +40,9 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	mainLayout->addWidget(bottomBarLayoutContainer);
 	setLayout(mainLayout);
 
-	connect(zoomButton,			SIGNAL (clicked()),					this, SLOT (handleZoomButton()));	
-	connect(brushSizeWidget,	SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeWidget(int)));
+	connect(frameSelectorWidget,	SIGNAL (valueChanged(int)),	this, SLOT (handleFrameChange(int)));
+	connect(zoomButton,				SIGNAL (clicked()),			this, SLOT (handleZoomButton()));	
+	connect(brushSizeWidget,		SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeWidget(int)));
 }
 
 void AnimatorMainWindow::handleZoomButton() {
@@ -46,4 +53,8 @@ void AnimatorMainWindow::handleZoomButton() {
 
 void AnimatorMainWindow::handleBrushSizeWidget(int value) {
 	oglWidget->setBrushSize(value);
+}
+
+void AnimatorMainWindow::handleFrameChange(int frame) {
+	
 }

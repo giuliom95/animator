@@ -14,6 +14,7 @@ public:
 public slots:
 	void handleZoomButton();
 	void handleBrushSizeWidget(int value);
+	void handleFrameChange(int frame);
 
 private:
 	QPushButton*	zoomButton;
