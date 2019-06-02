@@ -16,8 +16,8 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	zoomButton->setFixedWidth(70);
 
 	auto* frameSelectorWidget = new QSpinBox();
-	frameSelectorWidget->setMinimum(1);
-	frameSelectorWidget->setMaximum(100);
+	frameSelectorWidget->setMinimum(0);
+	frameSelectorWidget->setMaximum(99);
 	frameSelectorWidget->setPrefix("Frame: ");
 
 	auto* brushSizeWidget = new QSpinBox();

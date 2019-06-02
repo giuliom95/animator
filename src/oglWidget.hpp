@@ -24,7 +24,7 @@ class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
 	OGLWidget(QPushButton& zoomButton);
 
-	void newCanvas(const int canvasWidth, const int imageHeight);
+	void newAnimation(const int canvasWidth, const int imageHeight);
 
 	void setFrame(int newFrame);
 	void setZoom(float zoomFactor, float centerX, float centerY);
@@ -49,7 +49,9 @@ private:
 
 	int							currentFrame;
 	int							currentFrameLayerIndex;
+	std::vector<int>			layers2frame;
 	int							skinLevels;
+	std::vector<Utils::Frame>	framesData;
 
 	int							brushSize;
 

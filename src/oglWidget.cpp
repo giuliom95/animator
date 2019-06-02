@@ -3,7 +3,7 @@
 OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 												cameraPanX{0},
 												cameraPanY{0},
-												currentFrame{1},
+												currentFrame{0},
 												currentFrameLayerIndex{0},
 												skinLevels{3},
 												zoomFactor{1},
@@ -29,17 +29,28 @@ OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
 };
 
 
-void OGLWidget::newCanvas(const int w, const int h) {
+void OGLWidget::newAnimation(const int w, const int h) {
 	canvasWidth = w;
 	canvasHeight = h;
 
-	const auto clearCanv = std::vector<GLubyte>(w*h*3, 255);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
+	framesData = std::vector<Utils::Frame>(100, {w,h, {255,255,255}});
+
 	const auto levels = 2*skinLevels + 1;
-	// Allocate
+	layers2frame = std::vector<int>(levels);
+	for(auto i = 0; i < levels; ++i) layers2frame[i] = i;
+	for(auto i : layers2frame) std::cout << i << " "; std::cout << std::endl;
+
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
 	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGB8, w, h, levels);
-	for(int i = 0; i < levels; i++)
-		glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, w, h, 1, GL_RGB, GL_UNSIGNED_BYTE, clearCanv.data());
+	for(int i = 0; i < levels; i++) {
+		glTexSubImage3D(
+			GL_TEXTURE_2D_ARRAY,
+			0, 0, 0, i,
+			w, h, 1, 
+			GL_RGB, GL_UNSIGNED_BYTE, 
+			framesData[i].data()
+		);
+	}
 
 	const auto clearAlpha = std::vector<GLubyte>(w*h, 0);
 	glBindTexture(GL_TEXTURE_2D, strokeTexId);
@@ -47,8 +58,42 @@ void OGLWidget::newCanvas(const int w, const int h) {
 }
 
 void OGLWidget::setFrame(int newFrame) {
+	const auto nFrames = 2*skinLevels + 1;
+	const auto dFrame = newFrame - currentFrame;
+
+	// Go one step forward or backward
+	currentFrameLayerIndex = currentFrame + (dFrame > 0 ? +1 : -1);
+	// Handle circular array index
+	currentFrameLayerIndex = Utils::cycle(currentFrameLayerIndex, nFrames);
+
+	layers2frame[currentFrameLayerIndex] = newFrame;
+
+	// Refresh GPU memory
+	const auto w = canvasWidth;
+	const auto h = canvasHeight;
+	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
+	for(auto i = -skinLevels; i <= +skinLevels; ++i) {
+		const auto ci = Utils::cycle(currentFrameLayerIndex + i, nFrames);
+		const auto f = newFrame + i;
+		if(f < 0 || f > 99) continue;
+		if(layers2frame[ci] != f) {
+			// Upload new frame to GPU
+			glTexSubImage3D(
+				GL_TEXTURE_2D_ARRAY,
+				0, 0, 0, ci, 
+				canvasWidth, canvasHeight, 1, 
+				GL_RGB, GL_UNSIGNED_BYTE, 
+				framesData[f].data()
+			);
+			layers2frame[ci] = f;
+		}
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+	glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, canvasesTexId, 0, currentFrameLayerIndex);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	currentFrame = newFrame;
-	currentFrameLayerIndex = newFrame - 1;
 }
 
 void OGLWidget::setZoom(float zf, float x, float y) {
@@ -87,7 +132,7 @@ void OGLWidget::initializeGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	newCanvas(1920, 1080);
+	newAnimation(1920, 1080);
 
 	////////////////////////////////////////////
 	// Shader program for canvas presentation //
@@ -199,8 +244,8 @@ void OGLWidget::initializeGL() {
 	//////////////////
 	glGenFramebuffers(1, &fboId);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, strokeTexId, 0);
-	glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D_ARRAY, canvasesTexId, 0, 0);
+	glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, canvasesTexId, 0, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, strokeTexId, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//testDraw();
@@ -408,7 +453,7 @@ void OGLWidget::strokeManagement() {
 	glViewport(0, 0, canvasWidth, canvasHeight);
 	glUseProgram(stroke_progId);
 
-	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT1};
 	glDrawBuffers(1, buf);
 
 	glUniform2i(stroke_canvasSizeLocId, canvasWidth, canvasHeight);
@@ -431,7 +476,7 @@ void OGLWidget::transferStroke2Canvas() {
 	glViewport(0, 0, canvasWidth, canvasHeight);
 	glUseProgram(stroke2canvas_progId);
 
-	const GLenum buf[] = {GL_COLOR_ATTACHMENT1};
+	const GLenum buf[] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, buf);
 
 	glActiveTexture(GL_TEXTURE0);
@@ -445,6 +490,9 @@ void OGLWidget::transferStroke2Canvas() {
 	glUniform1i(stroke2canvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	// Write frame to RAM
+	glReadPixels(0,0, canvasWidth, canvasHeight, GL_RGB, GL_UNSIGNED_BYTE, framesData[currentFrame].data());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
