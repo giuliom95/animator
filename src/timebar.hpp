@@ -10,10 +10,15 @@ public:
 	explicit TimeBar(OGLWidget& oglw);
 
 public slots:
-	void handleFrameChange(int frame);
+	void handlePlayButton();
+	void changeFrame(int frame);
+	void nextFrame();
 
 private:
 	OGLWidget&	oglw;
+
+	bool			playing;
+	QTimer* 		nextFrameScheduler;
 
 	QPushButton*	playButtonWidget;
 	QSlider*		sliderWidget;
