@@ -38,7 +38,6 @@ void OGLWidget::newAnimation(const int w, const int h) {
 	const auto levels = 2*skinLevels + 1;
 	layers2frame = std::vector<int>(levels);
 	for(auto i = 0; i < levels; ++i) layers2frame[i] = i;
-	for(auto i : layers2frame) std::cout << i << " "; std::cout << std::endl;
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
 	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGB8, w, h, levels);
@@ -58,8 +57,9 @@ void OGLWidget::newAnimation(const int w, const int h) {
 }
 
 void OGLWidget::setFrame(int newFrame) {
-	const auto nFrames = 2*skinLevels + 1;
 	const auto dFrame = newFrame - currentFrame;
+	if(dFrame == 0) return;
+	const auto nFrames = 2*skinLevels + 1;
 
 	// Go one step forward or backward
 	currentFrameLayerIndex = currentFrame + (dFrame > 0 ? +1 : -1);

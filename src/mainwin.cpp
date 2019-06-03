@@ -8,17 +8,8 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	mainLayout->setContentsMargins(0,0,0,0);
 	mainLayout->setSpacing(0);
 
-	auto* bottomBarLayoutContainer = new QWidget;	// This is used to give a fixed height to the layout
-	bottomBarLayoutContainer->setFixedHeight(25);
-	auto* bottomBarLayout = new QHBoxLayout;
-	bottomBarLayout->setContentsMargins(0,0,5,0);
 	zoomButton = new QPushButton("100.0%");
 	zoomButton->setFixedWidth(70);
-
-	auto* frameSelectorWidget = new QSpinBox();
-	frameSelectorWidget->setMinimum(0);
-	frameSelectorWidget->setMaximum(99);
-	frameSelectorWidget->setPrefix("Frame: ");
 
 	auto* brushSizeWidget = new QSpinBox();
 	brushSizeWidget->setMinimum(1);
@@ -26,7 +17,10 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	brushSizeWidget->setPrefix("Brush size: ");
 	brushSizeWidget->setValue(10);
 
-	bottomBarLayout->addWidget(frameSelectorWidget);
+	auto* bottomBarLayoutContainer = new QWidget;
+	bottomBarLayoutContainer->setFixedHeight(25);
+	auto* bottomBarLayout = new QHBoxLayout;
+	bottomBarLayout->setContentsMargins(0,0,0,0);
 	bottomBarLayout->addStretch();
 	bottomBarLayout->addWidget(brushSizeWidget);
 	bottomBarLayout->addWidget(zoomButton);
@@ -36,11 +30,16 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	oglWidget->setMouseTracking(true);
 	oglWidget->setBrushSize(brushSizeWidget->value());
 
+	auto* timeBarLayoutContainer = new QWidget;
+	timeBarLayoutContainer->setFixedHeight(25);
+	auto* timeBarLayout = new TimeBar(*oglWidget);
+	timeBarLayoutContainer->setLayout(timeBarLayout);
+
 	mainLayout->addWidget(oglWidget);
+	mainLayout->addWidget(timeBarLayoutContainer);
 	mainLayout->addWidget(bottomBarLayoutContainer);
 	setLayout(mainLayout);
-
-	connect(frameSelectorWidget,	SIGNAL (valueChanged(int)),	this, SLOT (handleFrameChange(int)));
+	
 	connect(zoomButton,				SIGNAL (clicked()),			this, SLOT (handleZoomButton()));	
 	connect(brushSizeWidget,		SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeWidget(int)));
 }
@@ -53,8 +52,4 @@ void AnimatorMainWindow::handleZoomButton() {
 
 void AnimatorMainWindow::handleBrushSizeWidget(int value) {
 	oglWidget->setBrushSize(value);
-}
-
-void AnimatorMainWindow::handleFrameChange(int frame) {
-	oglWidget->setFrame(frame);
 }
