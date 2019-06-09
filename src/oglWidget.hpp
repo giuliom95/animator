@@ -18,11 +18,12 @@
 #include <QtWidgets>
 
 #include "utilities.hpp"
+#include "appstate.hpp"
 
 class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 	Q_OBJECT
 public:
-	OGLWidget(QPushButton& zoomButton);
+	OGLWidget(AppState& appState, QPushButton& zoomButton);
 
 	void newAnimation(const int canvasWidth, const int imageHeight);
 
@@ -42,6 +43,8 @@ protected:
 	void tabletEvent		(QTabletEvent*	event);
 
 private:
+	AppState& 					appState;
+
 	int							widgetWidth,		widgetHeight;
 	int							canvasWidth,		canvasHeight;
 	float						cameraPanX,			cameraPanY;

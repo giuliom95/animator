@@ -1,6 +1,7 @@
 #include "mainwin.hpp"
 
-AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
+AnimatorMainWindow::AnimatorMainWindow(AppState& appState) :	appState{appState},
+																QWidget() {
 	resize(600, 600);
 	setWindowTitle(" ");
 
@@ -26,13 +27,13 @@ AnimatorMainWindow::AnimatorMainWindow() : QWidget() {
 	bottomBarLayout->addWidget(zoomButton);
 	bottomBarLayoutContainer->setLayout(bottomBarLayout);
 
-	oglWidget = new OGLWidget(*zoomButton);
+	oglWidget = new OGLWidget(appState, *zoomButton);
 	oglWidget->setMouseTracking(true);
 	oglWidget->setBrushSize(brushSizeWidget->value());
 
 	auto* timeBarLayoutContainer = new QWidget;
 	timeBarLayoutContainer->setFixedHeight(25);
-	auto* timeBarLayout = new TimeBar(*oglWidget);
+	auto* timeBarLayout = new TimeBar(appState, *oglWidget);
 	timeBarLayoutContainer->setLayout(timeBarLayout);
 
 	mainLayout->addWidget(oglWidget);

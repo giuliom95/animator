@@ -3,11 +3,12 @@
 
 #include <QtWidgets>
 #include "oglWidget.hpp"
+#include "appstate.hpp"
 
 class TimeBar : public QHBoxLayout {
 	Q_OBJECT
 public:
-	explicit TimeBar(OGLWidget& oglw);
+	explicit TimeBar(AppState& appState, OGLWidget& oglw);
 
 public slots:
 	void handlePlayButton();
@@ -15,8 +16,8 @@ public slots:
 	void nextFrame();
 
 private:
-	int				topFrame;
-	
+	AppState&		appState;
+
 	OGLWidget&		oglw;
 
 	bool			playing;

@@ -1,20 +1,20 @@
 #include "timebar.hpp"
 
-TimeBar::TimeBar(OGLWidget& oglw) : QHBoxLayout(), 
-									oglw{oglw},
-									topFrame{25},
-									playing{false} {
+TimeBar::TimeBar(AppState& appState, OGLWidget& oglw) : QHBoxLayout(),
+														appState{appState},
+														oglw{oglw},
+														playing{false} {
 
 	playButtonWidget = new QPushButton("Play");
 
 	spinBoxWidget = new QSpinBox();
-	spinBoxWidget->setMinimum(0);
-	spinBoxWidget->setMaximum(topFrame);
+	spinBoxWidget->setMinimum(appState.lowerFrame);
+	spinBoxWidget->setMaximum(appState.upperFrame);
 	spinBoxWidget->setPrefix("Frame: ");
 
 	sliderWidget = new QSlider(Qt::Horizontal);
-	sliderWidget->setMinimum(0);
-	sliderWidget->setMaximum(topFrame);
+	sliderWidget->setMinimum(appState.lowerFrame);
+	sliderWidget->setMaximum(appState.upperFrame);
 	sliderWidget->setSingleStep(1);
 	sliderWidget->setPageStep(1);
 	sliderWidget->setTickPosition(QSlider::TicksBothSides);
@@ -46,13 +46,14 @@ void TimeBar::handlePlayButton() {
 }
 
 void TimeBar::changeFrame(int frame) {
+	appState.currentFrame = frame;
 	spinBoxWidget->setValue(frame);
 	sliderWidget->setValue(frame);
 	oglw.setFrame(frame);
 }
 
 void TimeBar::nextFrame() {
-	const auto thisFrame = spinBoxWidget->value();
-	const auto nextFrame = thisFrame == topFrame ? 0 : thisFrame + 1;
+	const auto nextFrame = appState.currentFrame == appState.upperFrame ? 
+		appState.lowerFrame : appState.currentFrame + 1;
 	changeFrame(nextFrame);
 }

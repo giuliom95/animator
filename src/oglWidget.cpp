@@ -1,23 +1,25 @@
 #include "oglWidget.hpp"
 
-OGLWidget::OGLWidget(QPushButton& zoomButton) :	QOpenGLWidget{},
-												cameraPanX{0},
-												cameraPanY{0},
-												currentFrame{0},
-												currentFrameLayerIndex{0},
-												skinLevels{3},
-												zoomFactor{1},
-												lastCursorPos{},
-												mouseButtonsPressed{false, false, false},
-												brushDown{false},
-												panning{false},
-												zoomButton(zoomButton),
-												showCanvas_vao{},
-												stroke_vao{},
-												stroke_points{},
-												stroke_points_indices{},
-												stroke_current_index{0},
-												stroke2canvas_doIt{true} {
+OGLWidget::OGLWidget(	AppState& appState,
+						QPushButton& zoomButton) :	QOpenGLWidget{},
+													appState{appState},
+													cameraPanX{0},
+													cameraPanY{0},
+													currentFrame{0},
+													currentFrameLayerIndex{0},
+													skinLevels{3},
+													zoomFactor{1},
+													lastCursorPos{},
+													mouseButtonsPressed{false, false, false},
+													brushDown{false},
+													panning{false},
+													zoomButton(zoomButton),
+													showCanvas_vao{},
+													stroke_vao{},
+													stroke_points{},
+													stroke_points_indices{},
+													stroke_current_index{0},
+													stroke2canvas_doIt{true} {
 	QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
@@ -73,7 +75,7 @@ void OGLWidget::setFrame(int newFrame) {
 	for(auto i = -skinLevels; i <= +skinLevels; ++i) {
 		const auto ci = Utils::cycle(currentFrameLayerIndex + i, nFrames);
 		const auto f = newFrame + i;
-		if(f < 0 || f > 25) continue;
+		if(f < appState.lowerFrame || f > appState.upperFrame) continue;
 		if(layers2frame[ci] != f) {
 			// Upload new frame to GPU
 			glTexSubImage3D(
