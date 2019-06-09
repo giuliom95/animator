@@ -66,8 +66,6 @@ void OGLWidget::setFrame(int newFrame) {
 	// Handle circular array index
 	currentFrameLayerIndex = Utils::cycle(currentFrameLayerIndex, nFrames);
 
-	layers2frame[currentFrameLayerIndex] = newFrame;
-
 	// Refresh GPU memory
 	const auto w = canvasWidth;
 	const auto h = canvasHeight;
@@ -75,7 +73,7 @@ void OGLWidget::setFrame(int newFrame) {
 	for(auto i = -skinLevels; i <= +skinLevels; ++i) {
 		const auto ci = Utils::cycle(currentFrameLayerIndex + i, nFrames);
 		const auto f = newFrame + i;
-		if(f < 0 || f > 99) continue;
+		if(f < 0 || f > 25) continue;
 		if(layers2frame[ci] != f) {
 			// Upload new frame to GPU
 			glTexSubImage3D(

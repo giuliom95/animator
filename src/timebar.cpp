@@ -2,18 +2,19 @@
 
 TimeBar::TimeBar(OGLWidget& oglw) : QHBoxLayout(), 
 									oglw{oglw},
+									topFrame{25},
 									playing{false} {
 
 	playButtonWidget = new QPushButton("Play");
 
 	spinBoxWidget = new QSpinBox();
 	spinBoxWidget->setMinimum(0);
-	spinBoxWidget->setMaximum(99);
+	spinBoxWidget->setMaximum(topFrame);
 	spinBoxWidget->setPrefix("Frame: ");
 
 	sliderWidget = new QSlider(Qt::Horizontal);
 	sliderWidget->setMinimum(0);
-	sliderWidget->setMaximum(99);
+	sliderWidget->setMaximum(topFrame);
 	sliderWidget->setSingleStep(1);
 	sliderWidget->setPageStep(1);
 	sliderWidget->setTickPosition(QSlider::TicksBothSides);
@@ -52,6 +53,6 @@ void TimeBar::changeFrame(int frame) {
 
 void TimeBar::nextFrame() {
 	const auto thisFrame = spinBoxWidget->value();
-	const auto nextFrame = thisFrame == 99 ? 0 : thisFrame + 1;
+	const auto nextFrame = thisFrame == topFrame ? 0 : thisFrame + 1;
 	changeFrame(nextFrame);
 }

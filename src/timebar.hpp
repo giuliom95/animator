@@ -15,7 +15,9 @@ public slots:
 	void nextFrame();
 
 private:
-	OGLWidget&	oglw;
+	int				topFrame;
+	
+	OGLWidget&		oglw;
 
 	bool			playing;
 	QTimer* 		nextFrameScheduler;
