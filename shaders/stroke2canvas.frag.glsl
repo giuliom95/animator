@@ -5,12 +5,13 @@ uniform sampler2DArray canvas;
 uniform int currentFrameLayerIndex;
 
 in vec2 uv;
-out vec3 color;
+out vec4 color;
 
 void main(){
     vec3 brush_color = vec3(0);
     float stroke_alpha = texture(stroke, uv).r;
-    vec3 dst = texture(canvas, vec3(uv, currentFrameLayerIndex)).rgb;
+    vec4 old = texture(canvas, vec3(uv, currentFrameLayerIndex));
 
-    color = (1 - stroke_alpha)*dst + stroke_alpha*brush_color;
+    color.rgb = (1 - stroke_alpha)*old.rgb + stroke_alpha*brush_color;
+    color.a = (1 - stroke_alpha)*old.a + stroke_alpha;
 }

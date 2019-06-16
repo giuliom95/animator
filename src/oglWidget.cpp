@@ -35,20 +35,20 @@ void OGLWidget::newAnimation(const int w, const int h) {
 	canvasWidth = w;
 	canvasHeight = h;
 
-	framesData = std::vector<Utils::Frame>(100, {w,h, {255,255,255}});
+	framesData = std::vector<Utils::Frame>(100, {w,h, {0,0,0,0}});
 
 	const auto levels = 2*skinLevels + 1;
 	layers2frame = std::vector<int>(levels);
 	for(auto i = 0; i < levels; ++i) layers2frame[i] = i;
 
 	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
-	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGB8, w, h, levels);
+	glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, w, h, levels);
 	for(int i = 0; i < levels; i++) {
 		glTexSubImage3D(
 			GL_TEXTURE_2D_ARRAY,
 			0, 0, 0, i,
 			w, h, 1, 
-			GL_RGB, GL_UNSIGNED_BYTE, 
+			GL_RGBA, GL_UNSIGNED_BYTE, 
 			framesData[i].data()
 		);
 	}
@@ -82,7 +82,7 @@ void OGLWidget::setFrame(int newFrame) {
 				GL_TEXTURE_2D_ARRAY,
 				0, 0, 0, ci, 
 				canvasWidth, canvasHeight, 1, 
-				GL_RGB, GL_UNSIGNED_BYTE, 
+				GL_RGBA, GL_UNSIGNED_BYTE, 
 				framesData[f].data()
 			);
 			layers2frame[ci] = f;
@@ -492,7 +492,7 @@ void OGLWidget::transferStroke2Canvas() {
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
 	// Write frame to RAM
-	glReadPixels(0,0, canvasWidth, canvasHeight, GL_RGB, GL_UNSIGNED_BYTE, framesData[currentFrame].data());
+	glReadPixels(0,0, canvasWidth, canvasHeight, GL_RGBA, GL_UNSIGNED_BYTE, framesData[currentFrame].data());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

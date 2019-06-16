@@ -19,7 +19,7 @@ namespace Utils {
 
 	class Pixel {
 	public:
-		GLubyte r, g, b;
+		GLubyte r, g, b, a;
 	};
 
 	class Frame : public std::vector<Pixel> {
