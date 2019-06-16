@@ -89,6 +89,14 @@ void OGLWidget::setFrame(int newFrame) {
 		}
 	}
 
+	for(auto i = 0; i < nFrames; ++i)
+		std::cout << std::setw(2) << layers2frame[i] << " ";
+	std::cout << std::endl;
+	for(auto i = 0; i < currentFrameLayerIndex; ++i)
+		std::cout << "   ";
+	std::cout << " ^" << std::endl;
+
+
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 	glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, canvasesTexId, 0, currentFrameLayerIndex);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -147,6 +155,7 @@ void OGLWidget::initializeGL() {
 	showCanvas_strokeTexLocId				= glGetUniformLocation(showCanvas_progId, "stroke");
 	showCanvas_canvasTexLocId				= glGetUniformLocation(showCanvas_progId, "canvas");
 	showCanvas_currentFrameLayerIndexLocId	= glGetUniformLocation(showCanvas_progId, "currentFrameLayerIndex");
+	showCanvas_lowerCurrentUpperFrameLocId	= glGetUniformLocation(showCanvas_progId, "lowerCurrentUpperFrame");
 
 	////////////////////////////////////////////
 	// Shader program for stroke manipulation //
@@ -290,6 +299,7 @@ void OGLWidget::paintGL() {
 	glUniform1i(showCanvas_canvasTexLocId, 1);
 
 	glUniform1i(showCanvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
+	glUniform3i(showCanvas_lowerCurrentUpperFrameLocId, appState.lowerFrame, currentFrame, appState.upperFrame);
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);

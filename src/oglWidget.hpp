@@ -88,6 +88,7 @@ private:
 	GLuint						showCanvas_strokeTexLocId;
 	GLuint						showCanvas_canvasTexLocId;
 	GLuint						showCanvas_currentFrameLayerIndexLocId;
+	GLuint						showCanvas_lowerCurrentUpperFrameLocId;
 
 	QOpenGLVertexArrayObject	stroke2canvas_vao;
 	GLuint						stroke2canvas_progId;
