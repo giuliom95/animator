@@ -154,6 +154,7 @@ void OGLWidget::initializeGL() {
 	showCanvas_matrixLocId					= glGetUniformLocation(showCanvas_progId, "view");
 	showCanvas_strokeTexLocId				= glGetUniformLocation(showCanvas_progId, "stroke");
 	showCanvas_canvasTexLocId				= glGetUniformLocation(showCanvas_progId, "canvas");
+	showCanvas_onionActiveLocId				= glGetUniformLocation(showCanvas_progId, "onionActive");
 	showCanvas_currentFrameLayerIndexLocId	= glGetUniformLocation(showCanvas_progId, "currentFrameLayerIndex");
 	showCanvas_lowerCurrentUpperFrameLocId	= glGetUniformLocation(showCanvas_progId, "lowerCurrentUpperFrame");
 
@@ -298,8 +299,9 @@ void OGLWidget::paintGL() {
 	glBindTexture(GL_TEXTURE_2D_ARRAY, canvasesTexId);
 	glUniform1i(showCanvas_canvasTexLocId, 1);
 
-	glUniform1i(showCanvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
-	glUniform3i(showCanvas_lowerCurrentUpperFrameLocId, appState.lowerFrame, currentFrame, appState.upperFrame);
+	glUniform1i(showCanvas_onionActiveLocId,			appState.onionSkin);
+	glUniform1i(showCanvas_currentFrameLayerIndexLocId,	currentFrameLayerIndex);
+	glUniform3i(showCanvas_lowerCurrentUpperFrameLocId,	appState.lowerFrame, currentFrame, appState.upperFrame);
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);

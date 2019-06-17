@@ -87,6 +87,7 @@ private:
 	GLuint						showCanvas_matrixLocId;
 	GLuint						showCanvas_strokeTexLocId;
 	GLuint						showCanvas_canvasTexLocId;
+	GLuint						showCanvas_onionActiveLocId;
 	GLuint						showCanvas_currentFrameLayerIndexLocId;
 	GLuint						showCanvas_lowerCurrentUpperFrameLocId;
 

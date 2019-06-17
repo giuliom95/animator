@@ -12,6 +12,7 @@ int main(int argc, char** argv) {
 	appState.currentFrame = 0;
 	appState.upperFrame = 25;
 	appState.lowerFrame = 0;
+	appState.onionSkin = true;
 
 	AnimatorMainWindow win{appState};
 	win.show();

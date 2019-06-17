@@ -18,10 +18,14 @@ AnimatorMainWindow::AnimatorMainWindow(AppState& appState) :	appState{appState},
 	brushSizeWidget->setPrefix("Brush size: ");
 	brushSizeWidget->setValue(10);
 
+	auto* onionCheck = new QCheckBox("Onion skin");
+	onionCheck->setChecked(appState.onionSkin);
+
 	auto* bottomBarLayoutContainer = new QWidget;
 	bottomBarLayoutContainer->setFixedHeight(25);
 	auto* bottomBarLayout = new QHBoxLayout;
-	bottomBarLayout->setContentsMargins(0,0,0,0);
+	bottomBarLayout->setContentsMargins(2,0,0,0);
+	bottomBarLayout->addWidget(onionCheck);
 	bottomBarLayout->addStretch();
 	bottomBarLayout->addWidget(brushSizeWidget);
 	bottomBarLayout->addWidget(zoomButton);
@@ -41,8 +45,9 @@ AnimatorMainWindow::AnimatorMainWindow(AppState& appState) :	appState{appState},
 	mainLayout->addWidget(bottomBarLayoutContainer);
 	setLayout(mainLayout);
 	
-	connect(zoomButton,				SIGNAL (clicked()),			this, SLOT (handleZoomButton()));	
-	connect(brushSizeWidget,		SIGNAL (valueChanged(int)),	this, SLOT (handleBrushSizeWidget(int)));
+	connect(zoomButton,				SIGNAL(clicked()),			this, SLOT(handleZoomButton()));	
+	connect(brushSizeWidget,		SIGNAL(valueChanged(int)),	this, SLOT(handleBrushSizeWidget(int)));
+	connect(onionCheck,				SIGNAL(stateChanged(int)),	this, SLOT(toggleOnionSkin()));
 }
 
 void AnimatorMainWindow::handleZoomButton() {
@@ -53,4 +58,8 @@ void AnimatorMainWindow::handleZoomButton() {
 
 void AnimatorMainWindow::handleBrushSizeWidget(int value) {
 	oglWidget->setBrushSize(value);
+}
+
+void AnimatorMainWindow::toggleOnionSkin() {
+	appState.onionSkin = !appState.onionSkin;
 }

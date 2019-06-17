@@ -6,6 +6,8 @@ public:
 	int	currentFrame;
 	int upperFrame;
 	int lowerFrame;
+
+	bool onionSkin;
 };
 
 

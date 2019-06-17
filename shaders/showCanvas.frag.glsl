@@ -2,6 +2,7 @@
 
 uniform sampler2D stroke;
 uniform sampler2DArray canvas;
+uniform bool onionActive;
 uniform int currentFrameLayerIndex;
 uniform ivec3 lowerCurrentUpperFrame;
 
@@ -25,32 +26,34 @@ void main(){
 	// Start with white
 	out_color = vec3(1);
 
-	// Frames before (BLUE)
-	for(int i = 0; i < layers; ++i) {
-		int ci = i - layers;
-		int f = lowerCurrentUpperFrame.y + ci;
-		if(f < lowerCurrentUpperFrame.x || f > lowerCurrentUpperFrame.z) continue;
+	if(onionActive) {
+		// Frames before (BLUE)
+		for(int i = 0; i < layers; ++i) {
+			int ci = i - layers;
+			int f = lowerCurrentUpperFrame.y + ci;
+			if(f < lowerCurrentUpperFrame.x || f > lowerCurrentUpperFrame.z) continue;
 
-		int fi = cycle(currentFrameLayerIndex + ci, loadedFrames);
-		vec4 frame_pix = texture(canvas, vec3(uv, fi));
-		vec3 frame_lum = vec3(luma(frame_pix.rgb));
-		frame_lum.b = 1;
-		frame_pix.a *= 0.5 * ((i+1) / float(layers));
-		out_color = (1 - frame_pix.a)*out_color + frame_pix.a*frame_lum.rgb;
-	}
-	
-	// Frames after (RED)
-	for(int i = 0; i < layers; ++i) {
-		int ci = i + 1;
-		int f = lowerCurrentUpperFrame.y + ci;
-		if(f < lowerCurrentUpperFrame.x || f > lowerCurrentUpperFrame.z) continue;
+			int fi = cycle(currentFrameLayerIndex + ci, loadedFrames);
+			vec4 frame_pix = texture(canvas, vec3(uv, fi));
+			vec3 frame_lum = vec3(luma(frame_pix.rgb));
+			frame_lum.b = 1;
+			frame_pix.a *= 0.5 * ((i+1) / float(layers));
+			out_color = (1 - frame_pix.a)*out_color + frame_pix.a*frame_lum.rgb;
+		}
+		
+		// Frames after (RED)
+		for(int i = 0; i < layers; ++i) {
+			int ci = i + 1;
+			int f = lowerCurrentUpperFrame.y + ci;
+			if(f < lowerCurrentUpperFrame.x || f > lowerCurrentUpperFrame.z) continue;
 
-		int fi = cycle(currentFrameLayerIndex + ci, loadedFrames);
-		vec4 frame_pix = texture(canvas, vec3(uv, fi));
-		vec3 frame_lum = vec3(luma(frame_pix.rgb));
-		frame_lum.r = 1;
-		frame_pix.a *= 0.5 * (1 - i / float(layers));
-		out_color = (1 - frame_pix.a)*out_color + frame_pix.a*frame_lum.rgb;
+			int fi = cycle(currentFrameLayerIndex + ci, loadedFrames);
+			vec4 frame_pix = texture(canvas, vec3(uv, fi));
+			vec3 frame_lum = vec3(luma(frame_pix.rgb));
+			frame_lum.r = 1;
+			frame_pix.a *= 0.5 * (1 - i / float(layers));
+			out_color = (1 - frame_pix.a)*out_color + frame_pix.a*frame_lum.rgb;
+		}
 	}
 	
 
