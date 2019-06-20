@@ -16,6 +16,7 @@ public slots:
 	void handleZoomButton();
 	void handleBrushSizeWidget(int value);
 	void toggleOnionSkin();
+	void toggleEraser();
 
 private:
 	AppState&		appState;

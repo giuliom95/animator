@@ -21,10 +21,14 @@ AnimatorMainWindow::AnimatorMainWindow(AppState& appState) :	appState{appState},
 	auto* onionCheck = new QCheckBox("Onion skin");
 	onionCheck->setChecked(appState.onionSkin);
 
+	auto* eraserCheck = new QCheckBox("Erase");
+	eraserCheck->setChecked(appState.erasing);
+
 	auto* bottomBarLayoutContainer = new QWidget;
 	bottomBarLayoutContainer->setFixedHeight(25);
 	auto* bottomBarLayout = new QHBoxLayout;
 	bottomBarLayout->setContentsMargins(2,0,0,0);
+	bottomBarLayout->addWidget(eraserCheck);
 	bottomBarLayout->addWidget(onionCheck);
 	bottomBarLayout->addStretch();
 	bottomBarLayout->addWidget(brushSizeWidget);
@@ -48,6 +52,7 @@ AnimatorMainWindow::AnimatorMainWindow(AppState& appState) :	appState{appState},
 	connect(zoomButton,				SIGNAL(clicked()),			this, SLOT(handleZoomButton()));	
 	connect(brushSizeWidget,		SIGNAL(valueChanged(int)),	this, SLOT(handleBrushSizeWidget(int)));
 	connect(onionCheck,				SIGNAL(stateChanged(int)),	this, SLOT(toggleOnionSkin()));
+	connect(eraserCheck,			SIGNAL(stateChanged(int)),	this, SLOT(toggleEraser()));
 }
 
 void AnimatorMainWindow::handleZoomButton() {
@@ -62,4 +67,8 @@ void AnimatorMainWindow::handleBrushSizeWidget(int value) {
 
 void AnimatorMainWindow::toggleOnionSkin() {
 	appState.onionSkin = !appState.onionSkin;
+}
+
+void AnimatorMainWindow::toggleEraser() {
+	appState.erasing = !appState.erasing;
 }

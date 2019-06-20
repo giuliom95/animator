@@ -13,6 +13,7 @@ int main(int argc, char** argv) {
 	appState.upperFrame = 25;
 	appState.lowerFrame = 0;
 	appState.onionSkin = true;
+	appState.erasing = false;
 
 	AnimatorMainWindow win{appState};
 	win.show();

@@ -3,7 +3,7 @@
 uniform sampler2D stroke;
 uniform sampler2DArray canvas;
 uniform int currentFrameLayerIndex;
-
+uniform bool eraserActive;
 in vec2 uv;
 out vec4 color;
 

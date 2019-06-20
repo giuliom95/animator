@@ -8,6 +8,7 @@ public:
 	int lowerFrame;
 
 	bool onionSkin;
+	bool erasing;
 };
 
 

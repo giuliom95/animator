@@ -156,6 +156,7 @@ void OGLWidget::initializeGL() {
 	showCanvas_onionActiveLocId				= glGetUniformLocation(showCanvas_progId, "onionActive");
 	showCanvas_currentFrameLayerIndexLocId	= glGetUniformLocation(showCanvas_progId, "currentFrameLayerIndex");
 	showCanvas_lowerCurrentUpperFrameLocId	= glGetUniformLocation(showCanvas_progId, "lowerCurrentUpperFrame");
+	showCanvas_eraserActiveLocId			= glGetUniformLocation(showCanvas_progId, "eraserActive");
 
 	////////////////////////////////////////////
 	// Shader program for stroke manipulation //
@@ -188,6 +189,7 @@ void OGLWidget::initializeGL() {
 	stroke2canvas_strokeTexLocId				= glGetUniformLocation(stroke2canvas_progId, "stroke");
 	stroke2canvas_canvasTexLocId				= glGetUniformLocation(stroke2canvas_progId, "canvas");
 	stroke2canvas_currentFrameLayerIndexLocId	= glGetUniformLocation(stroke2canvas_progId, "currentFrameLayerIndex");
+	stroke2canvas_eraserActiveLocId				= glGetUniformLocation(stroke2canvas_progId, "eraserActive");
 
 	////////////////////////////////////
 	// Generate canvas vertex buffers //
@@ -301,6 +303,7 @@ void OGLWidget::paintGL() {
 	glUniform1i(showCanvas_onionActiveLocId,			appState.onionSkin);
 	glUniform1i(showCanvas_currentFrameLayerIndexLocId,	currentFrameLayerIndex);
 	glUniform3i(showCanvas_lowerCurrentUpperFrameLocId,	appState.lowerFrame, currentFrame, appState.upperFrame);
+	glUniform1i(showCanvas_eraserActiveLocId,			appState.erasing);
 
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -451,10 +454,6 @@ QPointF OGLWidget::widget2canvasCoords(const QPointF& widgetPos) {
 }
 
 void OGLWidget::strokeManagement() {
-
-	// Exit if stroke has not started
-	if(stroke_points.size() == 0)
-		return;
 	
 	glBlendEquation(GL_MAX);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
@@ -476,7 +475,8 @@ void OGLWidget::strokeManagement() {
 
 	glClearColor(0,0,0,1);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glDrawElements(GL_PATCHES, 2*stroke_current_index - 1, GL_UNSIGNED_INT, stroke_points_indices.data());
+	const auto size = stroke_points.size() > 0 ? 2*stroke_current_index - 1 : 0;
+	glDrawElements(GL_PATCHES, size, GL_UNSIGNED_INT, stroke_points_indices.data());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBlendEquation(GL_FUNC_ADD);
@@ -503,6 +503,7 @@ void OGLWidget::transferStroke2Canvas() {
 	glUniform1i(stroke2canvas_canvasTexLocId, 1);
 
 	glUniform1i(stroke2canvas_currentFrameLayerIndexLocId, currentFrameLayerIndex);
+	glUniform1i(stroke2canvas_eraserActiveLocId, appState.erasing);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

@@ -90,12 +90,14 @@ private:
 	GLuint						showCanvas_onionActiveLocId;
 	GLuint						showCanvas_currentFrameLayerIndexLocId;
 	GLuint						showCanvas_lowerCurrentUpperFrameLocId;
+	GLuint						showCanvas_eraserActiveLocId;
 
 	QOpenGLVertexArrayObject	stroke2canvas_vao;
 	GLuint						stroke2canvas_progId;
 	GLuint						stroke2canvas_strokeTexLocId;
 	GLuint						stroke2canvas_canvasTexLocId;
 	GLuint						stroke2canvas_currentFrameLayerIndexLocId;
+	GLuint						stroke2canvas_eraserActiveLocId;
 	bool						stroke2canvas_doIt;
 
 	void pan(const QPointF cursorPosOnScreen);
