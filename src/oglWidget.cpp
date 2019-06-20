@@ -127,7 +127,6 @@ void OGLWidget::setBrushSize(int newSize) {
 
 void OGLWidget::initializeGL() {
 	initializeOpenGLFunctions();
-	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 
 	glGenTextures(1, &canvasesTexId);
@@ -453,6 +452,10 @@ QPointF OGLWidget::widget2canvasCoords(const QPointF& widgetPos) {
 
 void OGLWidget::strokeManagement() {
 
+	// Exit if stroke has not started
+	if(stroke_points.size() == 0)
+		return;
+	
 	glBlendEquation(GL_MAX);
 	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 
