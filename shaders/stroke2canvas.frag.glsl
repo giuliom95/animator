@@ -13,5 +13,8 @@ void main(){
     vec4 old = texture(canvas, vec3(uv, currentFrameLayerIndex));
 
     color.rgb = (1 - stroke_alpha)*old.rgb + stroke_alpha*brush_color;
-    color.a = (1 - stroke_alpha)*old.a + stroke_alpha;
+    if(eraserActive)
+        color.a = min(old.a, 1 - stroke_alpha);
+    else
+        color.a = (1 - stroke_alpha)*old.a + stroke_alpha;
 }
