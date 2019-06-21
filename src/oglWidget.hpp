@@ -16,11 +16,13 @@
 #include <fstream>
 
 #include <QtWidgets>
+#include <QGLWidget> 
+#include <QOpenGLFunctions_4_5_Core>
 
 #include "utilities.hpp"
 #include "appstate.hpp"
 
-class OGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
+class OGLWidget : public QGLWidget, protected QOpenGLFunctions_4_5_Core {
 	Q_OBJECT
 public:
 	OGLWidget(AppState& appState, QPushButton& zoomButton);

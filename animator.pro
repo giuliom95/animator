@@ -11,5 +11,6 @@ SOURCES +=  src/main.cpp        \
             src/timebar.cpp     \
             src/utilities.cpp
 QT += widgets
+QT += opengl
 INCLUDEPATH +=
 LIBS +=

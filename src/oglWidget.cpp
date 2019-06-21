@@ -1,8 +1,7 @@
 #include "oglWidget.hpp"
 
 OGLWidget::OGLWidget(	AppState& appState,
-						QPushButton& zoomButton) :	QOpenGLWidget{},
-													appState{appState},
+						QPushButton& zoomButton) :	appState{appState},
 													cameraPanX{0},
 													cameraPanY{0},
 													currentFrame{0},
@@ -20,10 +19,10 @@ OGLWidget::OGLWidget(	AppState& appState,
 													stroke_points_indices{},
 													stroke_current_index{0},
 													stroke2canvas_doIt{true} {
-	QSurfaceFormat format;
+	/*QSurfaceFormat format;
 	format.setProfile(QSurfaceFormat::CoreProfile);
 	format.setVersion(4,5);
-	setFormat(format);
+	setFormat(format);*/
 
 	auto* updateScheduler = new QTimer(this);
 	connect(updateScheduler, SIGNAL(timeout()), this, SLOT(update()));
