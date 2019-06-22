@@ -66,6 +66,7 @@ private:
 
 	std::array<bool, 3> 		mouseButtonsPressed;
 	bool						brushDown;
+    bool                        isTabletStroke;
 	bool						panning;
 
 	QPushButton& 				zoomButton;
@@ -107,7 +108,7 @@ private:
 	// Brush is lifted from canvas
 	void liftBush();
 	// Brush dragged on canvas
-	void dragBrush(const QPointF cursorPosOnWidget, const float pressure=1);
+    void dragBrush(const QPointF cursorPosOnWidget, const float pressure=0.999f);
 
 	QPointF widget2canvasCoords(const QPointF& widgetPos);
 

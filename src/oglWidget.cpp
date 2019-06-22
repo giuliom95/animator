@@ -11,6 +11,7 @@ OGLWidget::OGLWidget(	AppState& appState,
 													lastCursorPos{},
 													mouseButtonsPressed{false, false, false},
 													brushDown{false},
+                                                    isTabletStroke{false},
 													panning{false},
 													zoomButton(zoomButton),
 													showCanvas_vao{},
@@ -19,10 +20,6 @@ OGLWidget::OGLWidget(	AppState& appState,
 													stroke_points_indices{},
 													stroke_current_index{0},
 													stroke2canvas_doIt{true} {
-	/*QSurfaceFormat format;
-	format.setProfile(QSurfaceFormat::CoreProfile);
-	format.setVersion(4,5);
-	setFormat(format);*/
 
 	auto* updateScheduler = new QTimer(this);
 	connect(updateScheduler, SIGNAL(timeout()), this, SLOT(update()));
@@ -173,7 +170,7 @@ void OGLWidget::initializeGL() {
 	stroke_canvasSizeLocId = glGetUniformLocation(stroke_progId, "canvasSize");
 	stroke_brushSizeLocId = glGetUniformLocation(stroke_progId, "brushSize");
 	glPatchParameteri(GL_PATCH_VERTICES, 2);
-	const GLfloat outer_tess_lvl[] = {1, 16};
+    const GLfloat outer_tess_lvl[] = {1, 16};
 	glPatchParameterfv(GL_PATCH_DEFAULT_OUTER_LEVEL, outer_tess_lvl);
 
 	//////////////////////////////////////////////////
@@ -317,22 +314,25 @@ void OGLWidget::mousePressEvent(QMouseEvent* event) {
 	lastCursorPos.setY(mouseScreenPos.y());
 
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = true;
-
+    /*
 	if(mouseButtonsPressed[0]) {
 		brushDown = true;
+        isTabletStroke = false;
 		dragBrush(event->pos());
 		dragBrush(event->pos());
 	}
+    */
 }
 
 void OGLWidget::mouseReleaseEvent(QMouseEvent* event) {
 	
 	mouseButtonsPressed[Utils::mapQtMouseBtn(event->button())] = false;
-	
-	if(brushDown) {
+    /*
+    if(brushDown && !isTabletStroke) {
 		dragBrush(event->pos());
 		liftBush();
 	}
+    */
 }
 
 void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
@@ -340,10 +340,11 @@ void OGLWidget::mouseMoveEvent(QMouseEvent* event) {
 	if(mouseButtonsPressed[2]) {
 		pan(event->screenPos());
 	}
-
-	if(brushDown) {
+    /*
+    if(brushDown && !isTabletStroke) {
 		dragBrush(event->pos());
 	}
+    */
 }
 
 void OGLWidget::wheelEvent(QWheelEvent *event) {
@@ -370,14 +371,16 @@ void OGLWidget::tabletEvent(QTabletEvent* event) {
 	}
 	
 	const auto pressure = event->pressure();
-	if(pressure > 0.0001 && !brushDown)
+    if(pressure > 0.0001 && !brushDown) {
 		brushDown = true;
+        isTabletStroke = true;
+    }
 
 	if(pressure < 0.0001 && brushDown)
 		liftBush();
 
 	if(brushDown) {
-		const QPointF p{event->hiResGlobalX(), event->hiResGlobalY()};
+        const QPointF p{event->hiResGlobalX(), event->hiResGlobalY()};
 		const auto windowPos = mapToGlobal({0,0});
 		const QPointF widgetPos = p - windowPos;
 		dragBrush(widgetPos, pressure);
